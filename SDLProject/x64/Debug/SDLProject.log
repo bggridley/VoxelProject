@@ -1,0 +1,41 @@
+﻿  Animation.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Texture.h(2,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  BitmapFont.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\BitmapFont.h(9,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  Chunk.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Chunk.h(2,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  Entity.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  EntityBullet.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  EntityItem.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  EntityParticle.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  EntityPlayer.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  Game.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  Gui.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  GuiMainMenu.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  GuiPaused.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  Inventory.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Texture.h(2,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  Item.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Texture.h(2,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  ItemTile.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Texture.h(2,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  main.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\main.cpp(3,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  Renderer.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Renderer.h(2,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  SDLProject.cpp
+c1xx : fatal error C1083: Cannot open source file: 'SDLProject.cpp': No such file or directory
+  TextureAtlas.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Texture.h(2,10): fatal error C1083: Cannot open include file: 'glew.h': No such file or directory
+  World.cpp
+C:\CS\OpenGL\SDLProject\SDLProject\Game.h(2,10): fatal error C1083: Cannot open include file: 'SDL.h': No such file or directory
+  Generating Code...

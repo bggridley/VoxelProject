@@ -1,0 +1,14 @@
+﻿  SDLProject.cpp
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(64,43): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(64,29): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(65,44): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(65,36): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(66,129): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(66,110): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(80,38): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(251,33): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(252,33): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(258,46): warning C4305: '=': truncation from 'double' to 'float'
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(259,48): warning C4305: '=': truncation from 'double' to 'float'
+C:\CS\OpenGL\VoxelProject\SDLProject\SDLProject.cpp(149,7): warning C4102: 'start': unreferenced label
+  SDLProject.vcxproj -> C:\CS\OpenGL\VoxelProject\Debug\SDLProject.exe
