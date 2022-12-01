@@ -87,10 +87,9 @@ int main(int argc, char** argv) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(80, game->getWidth() / game->getHeight(), 0.1, 400.0);
-	int curFPS = 0;
 
+	int curFPS = 0;
 	int updates = 0;
-	//int totalUpdates = 0;
 	int frames = 0;
 	const int fps = 60;
 	float t = 0.0;
@@ -186,14 +185,12 @@ int main(int argc, char** argv) {
 				eye -= up;
 			}
 
-
 			t += dt;
 			accumulator -= dt;
 			rot += dt;
 		}
 
 		float alpha = accumulator / dt;
-
 
 		glClearColor(0.5f, 0.5f, 1.f, 1.f);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
