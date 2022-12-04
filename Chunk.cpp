@@ -5,6 +5,7 @@
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
+#include <vector>
 
 GLuint Chunk::vID;
 GLuint Chunk::program;
@@ -81,8 +82,10 @@ Chunk::Chunk(int xo, int yo, int zo) {
 	modelView = glm::translate(glm::mat4(1), glm::vec3(xo, yo, zo));
 
 	//std::cout << pow(CHUNK_SIZE, 3) << std::endl;
-	indicesCount = pow(CHUNK_SIZE, 3) * 12 * 3;
-	GLuint* indices = (GLuint*)malloc(sizeof(GLuint) * indicesCount);
+	//indicesCount = pow(CHUNK_SIZE, 3) * 12 * 3;
+	//GLuint* indices = (GLuint*)malloc(sizeof(GLuint) * indicesCount);
+
+	std::vector<GLuint> indices;
 
 	int indicesIndex = 0;
 
@@ -196,59 +199,60 @@ Chunk::Chunk(int xo, int yo, int zo) {
 
 					// front face
 
-					indices[indicesIndex++] = (bottomLeftFront)+0;
-					indices[indicesIndex++] = (topLeftFront)+4;
-					indices[indicesIndex++] = (topRightFront)+7;
-					indices[indicesIndex++] = (topRightFront)+7;
-					indices[indicesIndex++] = (bottomRightFront)+3;
-					indices[indicesIndex++] = (bottomLeftFront)+0;
+					indices.push_back((bottomLeftFront)+0);
+					indices.push_back((topLeftFront)+4);
+					indices.push_back((topRightFront)+7);
+					indices.push_back((topRightFront)+7);
+					indices.push_back((bottomRightFront)+3);
+					indices.push_back((bottomLeftFront)+0);
 
 					// back face
 
-					indices[indicesIndex++] = (bottomLeftBack)+1; // bottom left
-					indices[indicesIndex++] = (bottomRightBack)+2; // bottom right
-					indices[indicesIndex++] = (topRightBack)+6; // top right
-					indices[indicesIndex++] = (topRightBack)+6;
-					indices[indicesIndex++] = (topLeftBack)+5;
-					indices[indicesIndex++] = (bottomLeftBack)+1;
+					indices.push_back((bottomLeftBack)+1); // bottom left
+					indices.push_back((bottomRightBack)+2); // bottom right
+					indices.push_back((topRightBack)+6); // top right
+					indices.push_back((topRightBack)+6);
+					indices.push_back((topLeftBack)+5);
+					indices.push_back((bottomLeftBack)+1);
 
 					// right face
 
-					indices[indicesIndex++] = (bottomRightBack)+2;
-					indices[indicesIndex++] = (bottomRightFront)+3;
-					indices[indicesIndex++] = (topRightFront)+7;
-					indices[indicesIndex++] = (topRightFront)+7; // right | x = 0 to 1, z 1 y 0 to 1
-					indices[indicesIndex++] = (topRightBack)+6;
-					indices[indicesIndex++] = (bottomRightBack)+2;
+					indices.push_back((bottomRightBack)+2);
+					indices.push_back((bottomRightFront)+3);
+					indices.push_back((topRightFront)+7);
+					indices.push_back((topRightFront)+7); // right | x = 0 to 1, z 1 y 0 to 1
+					indices.push_back((topRightBack)+6);
+					indices.push_back((bottomRightBack)+2);
 
 					// left face
 
-					indices[indicesIndex++] = (bottomLeftFront)+0;
-					indices[indicesIndex++] = (bottomLeftBack)+1;
-					indices[indicesIndex++] = (topLeftBack)+5;
-					indices[indicesIndex++] = (topLeftBack)+5;
-					indices[indicesIndex++] = (topLeftFront)+4;
-					indices[indicesIndex++] = (bottomLeftFront)+0;
+					indices.push_back((bottomLeftFront)+0);
+					indices.push_back((bottomLeftBack)+1);
+					indices.push_back((topLeftBack)+5);
+					indices.push_back((topLeftBack)+5);
+					indices.push_back((topLeftFront)+4);
+					indices.push_back((bottomLeftFront)+0);
 
-					indices[indicesIndex++] = (bottomLeftFront)+0;
-					indices[indicesIndex++] = (bottomRightFront)+3;
-					indices[indicesIndex++] = (bottomRightBack)+2;
-					indices[indicesIndex++] = (bottomRightBack)+2;
-					indices[indicesIndex++] = (bottomLeftBack)+1;
-					indices[indicesIndex++] = (bottomLeftFront)+0;
+					indices.push_back((bottomLeftFront)+0);
+					indices.push_back((bottomRightFront)+3);
+					indices.push_back((bottomRightBack)+2);
+					indices.push_back((bottomRightBack)+2);
+					indices.push_back((bottomLeftBack)+1);
+					indices.push_back((bottomLeftFront)+0);
 
-					indices[indicesIndex++] = (topLeftFront)+4;
-					indices[indicesIndex++] = (topLeftBack)+5;
-					indices[indicesIndex++] = (topRightBack)+6;
-					indices[indicesIndex++] = (topRightBack)+6;
-					indices[indicesIndex++] = (topRightFront)+7;
-					indices[indicesIndex++] = (topLeftFront)+4;
+					indices.push_back((topLeftFront)+4);
+					indices.push_back((topLeftBack)+5);
+					indices.push_back((topRightBack)+6);
+					indices.push_back((topRightBack)+6);
+					indices.push_back((topRightFront)+7);
+					indices.push_back((topLeftFront)+4);
 
 				}
 			}
 		}
 	}
 	else {
+	/*
 		for (int x = 0; x < CHUNK_SIZE; x++) {
 			for (int z = 0; z < CHUNK_SIZE; z++) {
 				for (int y = 0; y < CHUNK_SIZE; y++) {
@@ -267,7 +271,8 @@ Chunk::Chunk(int xo, int yo, int zo) {
 
 
 					if (draw) { // this statement reduces the amount of triangles by 10x.
-						indices[indicesIndex++] = (index)+0;
+						
+						(index)+0;
 						indices[indicesIndex++] = (index)+4;
 						indices[indicesIndex++] = (index)+7; // front |  x = 0, z 0 to 1, y 0 to 1
 						indices[indicesIndex++] = (index)+7;
@@ -314,9 +319,11 @@ Chunk::Chunk(int xo, int yo, int zo) {
 				}
 			}
 		}
+	*/
 	}
 
-	totalTriangles += (indicesIndex / 3); // each element represents a vertex. 3 vertices = triangle
+	indicesCount = indices.size();
+	totalTriangles += (indices.size() / 3); // each element represents a vertex. 3 vertices = triangle
 
 
 	glGenVertexArrays(1, &vao);
@@ -325,7 +332,7 @@ Chunk::Chunk(int xo, int yo, int zo) {
 
 	glGenBuffers(1, &iID);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iID);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesIndex * sizeof(GL_UNSIGNED_INT), indices, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GL_UNSIGNED_INT), indices.data(), GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vID); // bind the vertices
 
@@ -337,7 +344,7 @@ Chunk::Chunk(int xo, int yo, int zo) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	free(indices);
+	//free(indices);
 }
 
 int Chunk::getIndex(int x, int y, int z) {

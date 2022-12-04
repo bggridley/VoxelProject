@@ -16,7 +16,7 @@ bool vsync = true;
 double mouseX, mouseY;
 int totalUpdates = 0;
 bool wireframe = false;
-const int s = 4; // dimension of chunk grid
+const int s = 16; // dimension of chunk grid
 
 // Shaders
 const GLchar* vertexShaderSource =
