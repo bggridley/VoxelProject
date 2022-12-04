@@ -5,22 +5,26 @@
 
 constexpr auto CHUNK_SIZE = 32;
 
+
 class Chunk {
 public:
 	Chunk(int xOffset, int yOffset, int zOffset);
 	~Chunk();
 	void render(GLuint modelViewID);
 	static void init(GLuint shader);
-private:
+	static int totalTriangles;
+	GLuint vao;
 	glm::mat4 modelView;
+	GLuint indicesCount;
+private:
 	char materials[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 	int xo, yo, zo;
 	void generateVertices();
 	void generateIndices();
-	GLuint indicesCount;
+
 	static GLuint vID; // vertices
 	GLuint iID; // indices
-	GLuint vao;
+	
 	static GLuint program;
 	int getIndex(int x, int y, int z);
 };
