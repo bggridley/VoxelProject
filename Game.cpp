@@ -36,12 +36,12 @@ void Game::update(float delta, int updateCount, int fps) {
 
 		}
 
-	
+
 	}
 }
 
 void Game::render(float alpha) {
-	std::string framespersec = "FPS:" + std::to_string(fps);
+	//std::string framespersec = "FPS:" + std::to_string(fps);
 }
 
 void Game::setDimensions(float width, float height) {

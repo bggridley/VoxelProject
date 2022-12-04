@@ -1,15 +1,18 @@
 #include "Chunk.h"
 #include <iostream>
 #include <GL/glew.h>
+#include "SimplexNoise.h"
+#include "glm.hpp"
+#include "gtc/matrix_transform.hpp"
+#include "gtc/type_ptr.hpp"
 
 GLuint Chunk::vID;
+GLuint Chunk::program; 
 
 // call this statically
-void Chunk::init() {
+void Chunk::init(GLuint shader) {
 	GLuint verticesCount = pow(CHUNK_SIZE, 3) * 8 * 3;
-
-
-	GLfloat* vertices = (GLfloat*)malloc(sizeof(GLfloat) * verticesCount);
+	GLuint* vertices = (GLuint*)malloc(sizeof(GLuint) * verticesCount);
 
 	for (int x = 0; x < CHUNK_SIZE; x++) {
 		for (int z = 0; z < CHUNK_SIZE; z++) {
@@ -50,10 +53,20 @@ void Chunk::init() {
 		}
 	}
 
-	Mesh::fill(vID, GL_ARRAY_BUFFER, vertices, verticesCount);
-	Mesh::unbind();
+	std::cout << "once " << std::endl;
+	program = shader;
+	// using just fill to avoid generating a new vertexID
 
-	std::cout << vID << std::endl;
+
+	glGenBuffers(1, &vID); // bind vertices
+	glBindBuffer(GL_ARRAY_BUFFER, vID);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLuint) * verticesCount, vertices, GL_DYNAMIC_DRAW);
+
+	std::cout << "vertices: " << verticesCount << " sizeof(vertices) :" << sizeof(vertices) << std::endl;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	//std::cout << vID << std::endl;
 
 	free(vertices);
 }
@@ -63,9 +76,10 @@ Chunk::Chunk(int xo, int yo, int zo) {
 	this->yo = yo;
 	this->zo = zo;
 
+	modelView = glm::translate(glm::mat4(1), glm::vec3(xo, yo, zo));
 
 	//std::cout << pow(CHUNK_SIZE, 3) << std::endl;
-	GLuint indicesCount = pow(CHUNK_SIZE, 3) * 12 * 3;
+	indicesCount = pow(CHUNK_SIZE, 3) * 12 * 3;
 	GLuint colorsCount = pow(CHUNK_SIZE, 3) * 8 * 3;
 
 
@@ -81,7 +95,8 @@ Chunk::Chunk(int xo, int yo, int zo) {
 	for (int x = 0; x < CHUNK_SIZE; x++) {
 		for (int z = 0; z < CHUNK_SIZE; z++) {
 			for (int y = 0; y < CHUNK_SIZE; y++) {
-				materials[x][y][z] = (rand() % 100) > 95 ? 1 : 0;
+				float noise = (SimplexNoise::noise((xo + x) / 100.f, (yo + y) / 100.f, (zo + z) / 100.f));
+				materials[x][y][z] = (noise > 0) ? 1 : 0; //(rand() % 100) > 10 ? 1 : 0;
 			}
 		}
 	}
@@ -170,13 +185,36 @@ Chunk::Chunk(int xo, int yo, int zo) {
 		}
 	}
 
-	chunkMesh = new Mesh();
-	chunkMesh->vID = vID;
 
-	chunkMesh->fill(chunkMesh->cID, GL_ARRAY_BUFFER, colors, colorsCount);
-	chunkMesh->fillIndices(indices, indicesCount);
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
-	Mesh::unbind();
+	
+	glGenBuffers(1, &iID);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iID);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesIndex * sizeof(GL_UNSIGNED_INT), indices, GL_DYNAMIC_DRAW);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, vID); // bind the vertices
+
+	
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(GL_UNSIGNED_INT), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+
+	
+
+
+	glBindVertexArray(0); // Unbind VAO
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	//chunkMesh = new 
+	// (program, vao);
+	//chunkMesh->vID = vID;
+
+	//chunkMesh->fill(chunkMesh->cID, GL_ARRAY_BUFFER, colors, colorsCount);
+	//chunkMesh->fillIndices(indices, indicesIndex);
+	//Mesh::unbind(); // use after fills
 
 	free(colors);
 	free(indices);
@@ -188,8 +226,32 @@ int Chunk::getIndex(int x, int y, int z) {
 }
 
 
-void Chunk::render() {
-	chunkMesh->render(xo, yo, zo);
+void Chunk::render(GLuint modelViewID) {
+	glUseProgram(program);
+
+	glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(modelView));
+	
+
+	
+
+
+
+	glEnable(GL_BLEND);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+	glFrontFace(GL_CCW);
+
+	//glTranslatef(xo, yo, zo);
+	glBindVertexArray(vao);
+
+	glDrawElements(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, (void*)0);
+
+	//glDrawArrays(GL_TRIANGLES, 0, indicesCount);
+
+	glBindVertexArray(0);
+
+	glDisable(GL_BLEND);
+	glDisable(GL_CULL_FACE);
 }
 
 
