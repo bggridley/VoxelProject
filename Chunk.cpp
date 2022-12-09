@@ -14,43 +14,48 @@ int Chunk::totalTriangles;
 // call this statically
 void Chunk::init(GLuint shader) {
 	totalTriangles = 0;
-	GLuint verticesCount = pow(CHUNK_SIZE, 3) * 8 * 3;
+	GLuint verticesCount = pow(CHUNK_SIZE, 3) * 8 * 3 * 3;
 	GLuint* vertices = (GLuint*)malloc(sizeof(GLuint) * verticesCount);
 
 	for (int x = 0; x < CHUNK_SIZE; x++) {
 		for (int z = 0; z < CHUNK_SIZE; z++) {
 			for (int y = 0; y < CHUNK_SIZE; y++) {
-				int index = (x + CHUNK_SIZE * (y + CHUNK_SIZE * z)) * 8 * 3;
+				int index = (x + CHUNK_SIZE * (y + CHUNK_SIZE * z)) * 8 * 3 * 3;
+
+				// FRONT FACE
+
 				vertices[index] = x;
-				vertices[index + 1] = y; // 0 bottom left
+				vertices[index + 1] = y; 
 				vertices[index + 2] = z;
 
-				vertices[index + 3] = x + 1;
-				vertices[index + 4] = y; // 1 bottom right
-				vertices[index + 5] = z;
+				vertices[index + 3] = x;
+				vertices[index + 4] = y; 
+				vertices[index + 5] = z + 1;
 
-				vertices[index + 6] = x + 1;
-				vertices[index + 7] = y; // 2 top right
+				vertices[index + 6] = x;
+				vertices[index + 7] = y + 1;
 				vertices[index + 8] = z + 1;
 
 				vertices[index + 9] = x;
-				vertices[index + 10] = y; // 3 top left
-				vertices[index + 11] = z + 1;
+				vertices[index + 10] = y + 1; 
+				vertices[index + 11] = z;
 
-				vertices[index + 12] = x; // 4
-				vertices[index + 13] = y + 1;
-				vertices[index + 14] = z;
+				// BACK FACE
+
+				vertices[index + 12] = x + 1; 
+				vertices[index + 13] = y;
+				vertices[index + 14] = z + 1;
 
 				vertices[index + 15] = x + 1;
-				vertices[index + 16] = y + 1; // 5
+				vertices[index + 16] = y; 
 				vertices[index + 17] = z;
 
 				vertices[index + 18] = x + 1;
-				vertices[index + 19] = y + 1; // 6
-				vertices[index + 20] = z + 1;
+				vertices[index + 19] = y + 1; 
+				vertices[index + 20] = z;
 
-				vertices[index + 21] = x;
-				vertices[index + 22] = y + 1; // 7
+				vertices[index + 21] = x + 1;
+				vertices[index + 22] = y + 1;
 				vertices[index + 23] = z + 1;
 			}
 		}
@@ -75,27 +80,25 @@ void Chunk::init(GLuint shader) {
 }
 
 Chunk::Chunk(int xo, int yo, int zo) {
-	this->xo = xo;
-	this->yo = yo;
-	this->zo = zo;
-
 	modelView = glm::translate(glm::mat4(1), glm::vec3(xo, yo, zo));
 
 	//std::cout << pow(CHUNK_SIZE, 3) << std::endl;
 	//indicesCount = pow(CHUNK_SIZE, 3) * 12 * 3;
 	//GLuint* indices = (GLuint*)malloc(sizeof(GLuint) * indicesCount);
 
-	std::vector<GLuint> indices;
+	//std::vector<GLuint> indices;
 
 	int indicesIndex = 0;
 
+	float scale = 300.0f;
 	bool visited[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 	for (int x = 0; x < CHUNK_SIZE; x++) {
 		for (int z = 0; z < CHUNK_SIZE; z++) {
+			float height = (SimplexNoise::noise((xo + x) / scale, (zo + z) / scale) + 1) / 2 * CHUNK_SIZE;
 			for (int y = 0; y < CHUNK_SIZE; y++) {
 				visited[x][y][z] = false;
-				float noise = (SimplexNoise::noise((xo + x) / 100.f, (yo + y) / 100.f, (zo + z) / 100.f));
-				materials[x][y][z] = (noise > 0) ? 1 : 0; //(rand() % 100) > 10 ? 1 : 0;
+				
+				materials[x][y][z] = (y <= height) ? 1 : 0; //(rand() % 100) > 10 ? 1 : 0;
 			}
 		}
 	}
@@ -200,23 +203,24 @@ Chunk::Chunk(int xo, int yo, int zo) {
 					// front face
 
 					indices.push_back((bottomLeftFront)+0);
-					indices.push_back((topLeftFront)+4);
-					indices.push_back((topRightFront)+7);
-					indices.push_back((topRightFront)+7);
-					indices.push_back((bottomRightFront)+3);
+					indices.push_back((bottomRightFront)+1);
+					indices.push_back((topRightFront)+2);
+					indices.push_back((topRightFront)+2);
+					indices.push_back((topLeftFront)+3);
 					indices.push_back((bottomLeftFront)+0);
 
 					// back face
 
-					indices.push_back((bottomLeftBack)+1); // bottom left
-					indices.push_back((bottomRightBack)+2); // bottom right
-					indices.push_back((topRightBack)+6); // top right
-					indices.push_back((topRightBack)+6);
-					indices.push_back((topLeftBack)+5);
-					indices.push_back((bottomLeftBack)+1);
+					indices.push_back((bottomRightBack)+4); // bottom left
+					indices.push_back((bottomLeftBack)+5); // bottom right
+					indices.push_back((topLeftBack)+6); // top right
+					indices.push_back((topLeftBack)+6);
+					indices.push_back((topRightBack)+7);
+					indices.push_back((bottomRightBack)+4);
 
 					// right face
 
+					/*
 					indices.push_back((bottomRightBack)+2);
 					indices.push_back((bottomRightFront)+3);
 					indices.push_back((topRightFront)+7);
@@ -226,6 +230,7 @@ Chunk::Chunk(int xo, int yo, int zo) {
 
 					// left face
 
+					
 					indices.push_back((bottomLeftFront)+0);
 					indices.push_back((bottomLeftBack)+1);
 					indices.push_back((topLeftBack)+5);
@@ -246,10 +251,15 @@ Chunk::Chunk(int xo, int yo, int zo) {
 					indices.push_back((topRightBack)+6);
 					indices.push_back((topRightFront)+7);
 					indices.push_back((topLeftFront)+4);
+					*/
+
+				
 
 				}
 			}
 		}
+
+		totalTriangles += indices.size() / 3;
 	}
 	else {
 	/*
@@ -325,63 +335,20 @@ Chunk::Chunk(int xo, int yo, int zo) {
 	indicesCount = indices.size();
 	totalTriangles += (indices.size() / 3); // each element represents a vertex. 3 vertices = triangle
 
+	//glUseProgram(program);
 
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-
-	glGenBuffers(1, &iID);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iID);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GL_UNSIGNED_INT), indices.data(), GL_DYNAMIC_DRAW);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vID); // bind the vertices
-
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(GL_UNSIGNED_INT), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-
-	glBindVertexArray(0); // Unbind VAO
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	//free(indices);
 }
 
 int Chunk::getIndex(int x, int y, int z) {
-	return (x + CHUNK_SIZE * (y + CHUNK_SIZE * z)) * 8;
+	return (x + CHUNK_SIZE * (y + CHUNK_SIZE * z)) * 8 * 3;
 }
 
-
-void Chunk::render(GLuint modelViewID) {
-	//glUseProgram(program);
-
-	glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(modelView));
-
-
-
-
-
-
-	//glEnable(GL_BLEND);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_FRONT);
-	glFrontFace(GL_CCW);
-
-	//glTranslatef(xo, yo, zo);
-	glBindVertexArray(vao);
-
-	glDrawElements(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, (void*)0);
-
-	//glDrawArrays(GL_TRIANGLES, 0, indicesCount);
-
-	//glDrawArrays(GL_TRIANGLES, 0, indicesCount);
-
-	glBindVertexArray(0);
-
-	//glDisable(GL_BLEND);
-	glDisable(GL_CULL_FACE);
-}
 
 
 Chunk::~Chunk() {
+	glDeleteBuffers(GL_ELEMENT_ARRAY_BUFFER, &iID);
+	glDeleteBuffers(GL_ARRAY_BUFFER, &vID);
+	glDeleteVertexArrays(1, &vao);
 }

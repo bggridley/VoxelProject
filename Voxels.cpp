@@ -2,12 +2,20 @@
 #include <algorithm>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "Game.h"
 #include "Chunk.h"
 #include <stdlib.h>
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
+#include <iterator>
+#include <unordered_map>
+#include "gtx/hash.hpp"
+#include <thread>
+#include <mutex>
+#include <queue>
+#include <vector>
+#include <sstream>
+
 
 bool left = false, right = false, forward = false, backward = false, space = false, shift = false;
 float xrotation = 0;
@@ -16,7 +24,22 @@ bool vsync = true;
 double mouseX, mouseY;
 int totalUpdates = 0;
 bool wireframe = false;
-const int s = 16; // dimension of chunk grid
+const int s = 4; // dimension of chunk grid
+GLFWwindow* window;
+//GLFWwindow* shared_window;
+bool fullscreen = false;
+std::unordered_map<glm::vec3, Chunk*> chunks;
+std::queue <std::pair<glm::vec3, Chunk*>> chunkQueue; // avoid weird synchronization issues // contains just the vec3's so that chunks doesn't have to be searched through...
+
+
+std::timed_mutex chunkMutex;
+
+
+int chunkLoadRange = 5;
+
+glm::vec3 fw = { 1.0, 0.0, 0.0 };
+glm::vec3 eye = { 0.0, 300, 0.0 };
+glm::vec3 up = { 0.0, 1.0, 0.0 };
 
 // Shaders
 const GLchar* vertexShaderSource =
@@ -30,7 +53,7 @@ const GLchar* vertexShaderSource =
 "void main()\n"
 "{\n"
 "gl_Position = projectionMatrix * viewMatrix * modelViewMatrix * vec4(position, 1.0);\n"
-"ourColor = position / 120.0;\n"
+"ourColor = vec4(vec4(position, 1.0)).xyz / 64.0;\n"
 "}\0";
 const GLchar* fragmentShaderSource =
 "#version 330 core\n"
@@ -80,16 +103,29 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 			break;
+		case GLFW_KEY_F:
+			//game->toggleFullscreen();
+			if (val) {
+				fullscreen = !fullscreen;
+				GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+				const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+				if (fullscreen) {
+					glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+					glViewport(0, 0, mode->width, mode->height);
+				}
+				else {
+					glfwSetWindowMonitor(window, NULL, (mode->width - mode->width / 1.5) / 2, (mode->height - mode->height / 1.5) / 2, mode->width / 1.5, mode->height / 1.5, 0);
+					glViewport(0, 0, mode->width / 1.5, mode->height / 1.5);
+				}
+			}
+
+			break;
 		}
 	}
 }
 
 int main(int argc, char** argv) {
-
-
-	Game* game = new Game(); // create a new game instance
-	//std::cout << mode.w << " , " << mode.h << std::endl;
-
 	if (GLFW_TRUE != glfwInit()) {
 		std::cout << "Failed to initialize GLFW." << std::endl;
 	}
@@ -101,26 +137,18 @@ int main(int argc, char** argv) {
 	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-
-
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
 
+	glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+	window = glfwCreateWindow(mode->width / 1.5, mode->height / 1.5, "Voxels", NULL, NULL);
 
-
-	game->setDimensions(mode->width / 1.5, mode->height / 1.5);
-	game->setFullscreenDimensions(mode->width, mode->height);
-	game->window = glfwCreateWindow(game->getWidth(), game->getHeight(), "Voxels", NULL, NULL);
-
-	glfwSetWindowPos(game->window, (mode->width - mode->width / 1.5) / 2, (mode->height - mode->height / 1.5) / 2);
-	glfwMakeContextCurrent(game->window);
-	glfwSetInputMode(game->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-
-	glfwSetKeyCallback(game->window, keyboard);
-	//glfwSetCursorPosCallback(game->window, mouse);
-
+	glfwSetWindowPos(window, (mode->width - mode->width / 1.5) / 2, (mode->height - mode->height / 1.5) / 2);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetKeyCallback(window, keyboard);
+	glfwMakeContextCurrent(window);
+	
 	glewExperimental = GL_TRUE;
 
 	if (GLEW_OK != glewInit()) {
@@ -130,17 +158,7 @@ int main(int argc, char** argv) {
 		std::cout << "GLEW intiailized successfully" << std::endl;
 	}
 
-
-
-
-
-
-
-	glm::vec3 fw = { 1.0, 0.0, 0.0 };
-	glm::vec3 eye = { 0.0, 0.04, 0.0 };
-	glm::vec3 up = { 0.0, 1.0, 0.0 };
-
-	glViewport(0, 0, game->getWidth(), game->getHeight());
+	glViewport(0, 0, mode->width / 1.5, mode->height / 1.5);
 
 
 	/*
@@ -196,7 +214,7 @@ int main(int argc, char** argv) {
 	gluPerspective(80, game->getWidth() / game->getHeight(), 0.1, 400.0);
 	*/
 
-	glm::mat4 projection = glm::perspective(glm::radians<float>(45.0f), game->getWidth() / game->getHeight(), 0.1f, 400.0f);
+	glm::mat4 projection = glm::perspective(glm::radians<float>(60.0f), (float)mode->width / (float)mode->height, 0.1f, 1000.f);
 
 	int curFPS = 0;
 	int updates = 0;
@@ -205,32 +223,104 @@ int main(int argc, char** argv) {
 	float t = 0.0;
 
 	float dt = 1.0f / 60.0f; // target ups regardless of fps
-	float deltaBuffer = 0.0f;
 	float deltaTime = 0.0f;
 	float currentTime = glfwGetTime(); // gotta do this so it doesnt blow up
 	float accumulator = 0.0f;
 
 	float rot = 0.0f;
 
-	// the amount of chunks on each axis
-
-
 	// pass this by value because it makes no sense to pass by reference if shaderprogram is on the stack....
-	Chunk::init(shaderProgram); // one single time
+	Chunk::init(shaderProgram);
 
-	Chunk* chunks[s][s][s];
+	auto chunkThreadBody = []() {
+		std::vector<glm::vec3> chunkList;
 
-	GLuint cID = 0;
-	glGenBuffers(1, &cID);
-	for (int x = 0; x < s; x++) {
-		for (int y = 0; y < s; y++) {
-			for (int z = 0; z < s; z++) {
-				chunks[x][y][z] = new Chunk(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
+		auto addChunk = [&chunkList](int chunkX, int chunkY, int chunkZ) {
+			glm::vec3 chunkCoords = glm::vec3(chunkX, chunkY, chunkZ);
+
+
+			if (std::find(chunkList.begin(), chunkList.end(), chunkCoords) == chunkList.end()) {
+				chunkList.push_back(chunkCoords);
+				chunkQueue.push(std::pair<glm::vec3, Chunk*>(chunkCoords, new Chunk(chunkX * CHUNK_SIZE, chunkY * CHUNK_SIZE, chunkZ * CHUNK_SIZE)));
+			}
+		};
+
+		int lastXAttempt = eye.x;
+		int lastZAttempt = eye.z;
+
+		bool started = false;
+
+		while (!glfwWindowShouldClose(window)) {
+	
+			if (chunkQueue.empty() && (!started || (std::abs(lastXAttempt - eye.x) > CHUNK_SIZE && std::abs(lastZAttempt - eye.z) > CHUNK_SIZE))) { // only do a new batch of chunks if the queue is fully processed...
+				if (!started) started = true;
+
+				float eyeX = eye.x;
+				float eyeZ = eye.z;
+
+				addChunk(eyeX / CHUNK_SIZE, 0, eyeZ / CHUNK_SIZE); // add offsets later
+
+				int maxSize = 20;
+
+				for (int i = 0; i < maxSize; i++) {
+					int x = -i; // bottom left corner...
+					int z = -i;
+
+					int xDir = 1;
+					int zDir = 0;
+
+					for (int j = 0; j < 4; j++) {
+						int lastX = x;
+						int lastZ = z;
+
+
+						x += xDir * i * 2;
+						z += zDir * i * 2;
+
+						int dir = xDir;
+						int start = lastX;
+						int check = x;
+
+						if (zDir != 0) {
+							dir = zDir;
+							start = lastZ;
+							check = z;
+						}
+
+						for (int cur = start; cur != check; cur += dir) {
+							int chunkX = zDir != 0 ? lastX : cur;
+							int chunkY = 0;
+							int chunkZ = zDir != 0 ? cur : lastZ;
+
+							addChunk(eyeX / CHUNK_SIZE + chunkX, chunkY, eyeZ / CHUNK_SIZE + chunkZ);
+						}
+
+						if (xDir == 1) {
+							zDir = 1;
+							xDir = 0;
+						}
+						else if (zDir == 1) {
+							xDir = -1;
+							zDir = 0;
+						}
+						else if (xDir == -1) {
+							zDir = -1;
+							xDir = 0;
+						}
+						else if (zDir == -1) {
+							xDir = 1;
+							zDir = 0;
+						}
+					}
+				}
 			}
 		}
-	}
+	};
 
-	std::cout << "Total Triangles: " << Chunk::totalTriangles << std::endl;
+	std::thread chunk_thread(chunkThreadBody);
+
+
+	//std::cout << "Total Triangles: " << Chunk::totalTriangles << std::endl;
 
 	glUseProgram(shaderProgram);
 	GLuint projectionID = glGetUniformLocation(shaderProgram, "projectionMatrix");
@@ -238,14 +328,22 @@ int main(int argc, char** argv) {
 	GLuint viewID = glGetUniformLocation(shaderProgram, "viewMatrix");
 	GLuint modelViewID = glGetUniformLocation(shaderProgram, "modelViewMatrix");
 
-	while (!glfwWindowShouldClose(game->window))
+	std::cout << "ID::" << modelViewID << std::endl;
+
+
+	
+	while (!glfwWindowShouldClose(window))
 	{
 		if (t >= 1.0f) {
 			t -= 1.0f;
-			std::cout << "FPS: " << frames << " | UPS: " << updates << std::endl;
+
+			//std::ostringstream os;
+			std::cout << "FPS: " << frames << " | UPS: " << updates << " | CHUNKS: " << chunks.size() << std::endl;
+			//glfwSetWindowTitle(window, os.str().c_str());
 			curFPS = frames;
 			frames = 0;
 			updates = 0;
+			//os.clear();
 		}
 
 		float newTime = glfwGetTime();
@@ -254,12 +352,13 @@ int main(int argc, char** argv) {
 		accumulator += deltaTime;
 
 		while (accumulator >= dt) {
+
 			updates++;
 			totalUpdates++;
 			glfwPollEvents();
 
 			double mx, my;
-			glfwGetCursorPos(game->window, &mx, &my);
+			glfwGetCursorPos(window, &mx, &my);
 
 			if (totalUpdates > 60) {
 				yrotation += (mouseX - mx) * 0.001;
@@ -269,15 +368,12 @@ int main(int argc, char** argv) {
 			mouseX = mx;
 			mouseY = my;
 
-
 			if (xrotation > 3.14 / 2) xrotation = 3.14 / 2;
 			if (xrotation < -3.14 / 2) xrotation = -3.14 / 2;
 
 			fw.x = cos(yrotation) * cos(xrotation);
 			fw.y = sin(xrotation);
 			fw.z = cos(xrotation) * sin(-yrotation);
-
-			//std::cout << fw.x << ", " << fw.y << ", " << fw.z << std::endl;
 
 			if (forward) {
 				eye += fw;
@@ -306,71 +402,87 @@ int main(int argc, char** argv) {
 			t += dt;
 			accumulator -= dt;
 			rot += dt;
+
+			int chunksPerUpdate = 5;
+
+			for (int i = 0; i < chunksPerUpdate; i++) {
+
+				if (!chunkQueue.empty()) {
+					//chunkMutex.lock();
+					std::pair<glm::vec3, Chunk*> pair = chunkQueue.front();
+					Chunk* c = pair.second;
+
+					glGenVertexArrays(1, &(c->vao));
+					glBindVertexArray(c->vao);
+
+
+					glGenBuffers(1, &c->iID);
+					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, c->iID);
+					glBufferData(GL_ELEMENT_ARRAY_BUFFER, c->indices.size() * sizeof(GL_UNSIGNED_INT), c->indices.data(), GL_DYNAMIC_DRAW);
+
+					glBindBuffer(GL_ARRAY_BUFFER, c->vID); // bind the vertices
+
+					glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(GL_UNSIGNED_INT), (GLvoid*)0);
+					glEnableVertexAttribArray(0);
+
+					glBindVertexArray(0); // Unbind VAO
+
+					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+					glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+					chunks.emplace(pair.first, c);
+					chunkQueue.pop(); // delete the item that was just inserted into chunks
+
+				}
+				else {
+					break;
+				}
+			}
+
 		}
+
+		// render
 
 		float alpha = accumulator / dt;
 
-		glClearColor(0.5f, 0.5f, 1.f, 1.f);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		glEnable(GL_DEPTH_TEST);
-		//glMatrixMode(GL_MODELVIEW);
-		//glLoadIdentity();
-		//gluLookAt(eye[0], eye[1], eye[2], eye[0] + fw[0], eye[1] + fw[1], eye[2] + fw[2], up[0], up[1], up[2]);
-
-
-
-
 		glm::mat4 view = glm::lookAt(
-			eye, // Camera is at (4,3,3), in World Space
-			(eye + fw), // and looks at the origin
-			glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+			eye,
+			(eye + fw),
+			glm::vec3(0, 1, 0)
 		);
-
-
-		//glm::inverse(view, view);
 
 		glUniformMatrix4fv(viewID, 1, GL_FALSE, glm::value_ptr(view));
 
+		//glfwMakeContextCurrent(window);
+		glClearColor(0.5f, 0.5f, 1.f, 1.f);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
 		glFrontFace(GL_CCW);
 
-		
 
+		std::unordered_map<glm::vec3, Chunk*>::iterator it;
+		for (it = chunks.begin(); it != chunks.end(); it++)
+		{
+			Chunk* c = (Chunk*)it->second;
 
+			glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(c->modelView));
+			glBindVertexArray(c->vao);
+			glDrawElements(GL_TRIANGLES, c->indicesCount, GL_UNSIGNED_INT, (void*)0);
+			glBindVertexArray(0);
 
-
-
-
-		//glEnable(GL_BLEND);
-		
-
-		//glDisable(GL_BLEND);
-	
-
-
-		for (int x = 0; x < s; x++) {
-			for (int y = 0; y < s; y++) {
-				for (int z = 0; z < s; z++) {
-					glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(chunks[x][y][z]->modelView));
-
-					//glTranslatef(xo, yo, zo);
-					glBindVertexArray(chunks[x][y][z]->vao);
-
-					glDrawElements(GL_TRIANGLES, chunks[x][y][z]->indicesCount, GL_UNSIGNED_INT, (void*)0);
-
-					glBindVertexArray(0);
-					//chunks[x][y][z]->render(modelViewID);
-				}
-			}
 		}
+
 
 		glDisable(GL_CULL_FACE);
 
 		frames++;
-
-		glfwSwapBuffers(game->window);
+		glfwSwapBuffers(window);
 	}
+
+	std::cout << "waiting for chunk thread to terminate" << std::endl;
+	chunk_thread.join();
 
 	glfwTerminate();
 	return 0;
