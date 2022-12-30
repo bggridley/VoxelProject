@@ -15,6 +15,12 @@
 #include <queue>
 #include <vector>
 #include <sstream>
+#include <filesystem>
+#include <string>
+#include <stack>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 
 bool left = false, right = false, forward = false, backward = false, space = false, shift = false;
@@ -30,39 +36,69 @@ GLFWwindow* window;
 bool fullscreen = false;
 std::unordered_map<glm::vec3, Chunk*> chunks;
 std::queue <std::pair<glm::vec3, Chunk*>> chunkQueue; // avoid weird synchronization issues // contains just the vec3's so that chunks doesn't have to be searched through...
+std::queue <glm::vec3> chunkDequeue; // avoid weird synchronization issues // contains just the vec3's so that chunks doesn't have to be searched through...
 
-
+float distanceMoved = 0;
 std::timed_mutex chunkMutex;
 
+glm::vec3 velocity;
 
 int chunkLoadRange = 5;
+
+GLuint texture1;
+
+struct Plane {
+	glm::vec3 pos;
+	glm::vec3 dir;
+};
+
 
 glm::vec3 fw = { 1.0, 0.0, 0.0 };
 glm::vec3 eye = { 0.0, 300, 0.0 };
 glm::vec3 up = { 0.0, 1.0, 0.0 };
 
+/*
+*
+	gl_Position.z = 2.0*log(gl_Position.w*C + 1)/log(far*C + 1) - 1;
+	gl_Position.z *= gl_Position.w;
+*/
+
 // Shaders
 const GLchar* vertexShaderSource =
 "#version 330 core\n"
 "layout (location = 0) in vec3 position;\n"
+"layout (location = 1) in vec2 aTex;\n"
 "uniform mat4 projectionMatrix;\n"
 "uniform mat4 viewMatrix;\n"
 "uniform mat4 modelViewMatrix;\n"
 //"layout (location = 1) in vec3 color;\n"
-"out vec3 ourColor;\n"
+"out vec3 light;\n"
+"out vec2 tex;\n"
 "void main()\n"
 "{\n"
 "gl_Position = projectionMatrix * viewMatrix * modelViewMatrix * vec4(position, 1.0);\n"
-"ourColor = vec4(vec4(position, 1.0)).xyz / 64.0;\n"
+"vec3 mvPos = vec3(modelViewMatrix * vec4(position.xyz, 1.0));\n"
+"light = vec3(vec4(mvPos.yyy, 1.0) / 256);\n"
+"tex = aTex;\n"
 "}\0";
 const GLchar* fragmentShaderSource =
 "#version 330 core\n"
-"in vec3 ourColor;\n"
+"in vec3 light;\n"
+"in vec2 tex;\n"
 "out vec4 color;\n"
+"uniform sampler2D materials;\n"
 "void main()\n"
 "{\n"
-"color = vec4(ourColor, 1.0);\n"
+"color = vec4((texture(materials, tex).rgb + light * 2) / 3.0, 1.0);\n"
 "}\n\0";
+
+bool frustumCulling(glm::vec3 chunkPos, Plane farPlane, Plane leftPlane, Plane rightPlane, Plane topPlane, Plane bottomPlane) {
+	return glm::dot(farPlane.dir, chunkPos - farPlane.pos) >= 0
+		&& glm::dot(leftPlane.dir, chunkPos - leftPlane.pos) >= 0
+		&& glm::dot(rightPlane.dir, chunkPos - rightPlane.pos) >= 0
+		&& glm::dot(topPlane.dir, chunkPos - topPlane.pos) >= 0
+		&& glm::dot(bottomPlane.dir, chunkPos - bottomPlane.pos) >= 0;
+}
 
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -113,10 +149,12 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 				if (fullscreen) {
 					glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
 					glViewport(0, 0, mode->width, mode->height);
+					glfwSwapInterval(vsync);
 				}
 				else {
 					glfwSetWindowMonitor(window, NULL, (mode->width - mode->width / 1.5) / 2, (mode->height - mode->height / 1.5) / 2, mode->width / 1.5, mode->height / 1.5, 0);
 					glViewport(0, 0, mode->width / 1.5, mode->height / 1.5);
+					glfwSwapInterval(vsync);
 				}
 			}
 
@@ -126,6 +164,32 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 }
 
 int main(int argc, char** argv) {
+
+	std::stack<int> stack;
+	stack.push(1);
+	stack.push(2);
+	stack.push(3);
+
+	stack.pop();
+
+	stack.push(4);
+
+	stack.top();
+	stack.pop();
+
+	std::cout << stack.top();
+
+
+	int32_t nums[3] = { 2, 4, 3 };
+	std::cout << (nums[0] << nums[1] << nums[2]);
+
+
+	//glm::vec3 fw = { 1, 0, 0}; // pos on x
+
+	//glm::vec3 test = { 0, 1, 1+00 };
+
+	//std::cout << "DOT: " <<  glm::dot(fw, test) << std::endl;
+
 	if (GLFW_TRUE != glfwInit()) {
 		std::cout << "Failed to initialize GLFW." << std::endl;
 	}
@@ -148,7 +212,9 @@ int main(int argc, char** argv) {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetKeyCallback(window, keyboard);
 	glfwMakeContextCurrent(window);
-	
+
+	float aspect = mode->width / mode->height;
+
 	glewExperimental = GL_TRUE;
 
 	if (GLEW_OK != glewInit()) {
@@ -207,6 +273,37 @@ int main(int argc, char** argv) {
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
+	glGenTextures(1, &texture1);
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	// set the texture wrapping parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+
+
+	int texWidth, texHeight, nrChannels;
+	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+
+
+	std::string s = "/texture.png"; // fix basolute paht later
+	unsigned char* data = stbi_load(s.c_str(), &texWidth, &texHeight, &nrChannels, 0);
+	if (data)
+	{
+		std::cout << "loaded texture." << std::endl;//uniform sampler2D ourTexture;
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+
+
+
+
 
 	/*
 	glMatrixMode(GL_PROJECTION);
@@ -214,7 +311,10 @@ int main(int argc, char** argv) {
 	gluPerspective(80, game->getWidth() / game->getHeight(), 0.1, 400.0);
 	*/
 
-	glm::mat4 projection = glm::perspective(glm::radians<float>(60.0f), (float)mode->width / (float)mode->height, 0.1f, 1000.f);
+	float near = 0.1f;
+	float far = 1000.f;
+	float fov = 60.0f;
+	glm::mat4 projection = glm::perspective(glm::radians<float>(fov), (float)mode->width / (float)mode->height, near, far);
 
 	int curFPS = 0;
 	int updates = 0;
@@ -231,6 +331,12 @@ int main(int argc, char** argv) {
 
 	// pass this by value because it makes no sense to pass by reference if shaderprogram is on the stack....
 	Chunk::init(shaderProgram);
+
+	std::string a = "helo";
+	std::string b = "hi";
+
+	//(a + b).length() ? > 120;
+
 
 	auto chunkThreadBody = []() {
 		std::vector<glm::vec3> chunkList;
@@ -249,71 +355,118 @@ int main(int argc, char** argv) {
 		int lastZAttempt = eye.z;
 
 		bool started = false;
+		int maxSize = 12;
+		int chunkHeight = 4;
+		float maxSizeSqrt = maxSize * sqrt(1.8);
+		int ticker = 0;
 
 		while (!glfwWindowShouldClose(window)) {
-	
-			if (chunkQueue.empty() && (!started || (std::abs(lastXAttempt - eye.x) > CHUNK_SIZE && std::abs(lastZAttempt - eye.z) > CHUNK_SIZE))) { // only do a new batch of chunks if the queue is fully processed...
-				if (!started) started = true;
+
+			//std::cout << distanceMoved << std::endl;
+			if (distanceMoved > CHUNK_SIZE / 4) {
+				distanceMoved = 0;
+
+				int wc = 0; // working chunks
 
 				float eyeX = eye.x;
 				float eyeZ = eye.z;
-
-				addChunk(eyeX / CHUNK_SIZE, 0, eyeZ / CHUNK_SIZE); // add offsets later
-
-				int maxSize = 20;
-
-				for (int i = 0; i < maxSize; i++) {
-					int x = -i; // bottom left corner...
-					int z = -i;
-
-					int xDir = 1;
-					int zDir = 0;
-
-					for (int j = 0; j < 4; j++) {
-						int lastX = x;
-						int lastZ = z;
+				if (chunkQueue.empty() && chunkDequeue.empty()) {
+					ticker++;
+					if (ticker % 4 == 0) {
+						//std::cout << "huh" << std::endl;
+						// only do a new batch of chunks if the queue is fully processed...
+						if (!started) started = true;
 
 
-						x += xDir * i * 2;
-						z += zDir * i * 2;
+						for (int i = 0; i < chunkHeight; i++) {
+							addChunk(eyeX / CHUNK_SIZE, i, eyeZ / CHUNK_SIZE);
+							wc++;
+						}
+						
 
-						int dir = xDir;
-						int start = lastX;
-						int check = x;
 
-						if (zDir != 0) {
-							dir = zDir;
-							start = lastZ;
-							check = z;
+						for (int i = 0; i < maxSize; i++) {
+							int x = -i; // bottom left corner...
+							int z = -i;
+
+							int xDir = 1;
+							int zDir = 0;
+
+							for (int j = 0; j < 4; j++) {
+								int lastX = x;
+								int lastZ = z;
+
+
+								x += xDir * i * 2;
+								z += zDir * i * 2;
+
+								int dir = xDir;
+								int start = lastX;
+								int check = x;
+
+								if (zDir != 0) {
+									dir = zDir;
+									start = lastZ;
+									check = z;
+								}
+
+								for (int cur = start; cur != check; cur += dir) {
+									int chunkX = zDir != 0 ? lastX : cur;
+									
+									int chunkZ = zDir != 0 ? cur : lastZ;
+									for (int chunkY = 0; chunkY < chunkHeight; chunkY++) {
+
+										addChunk(eyeX / CHUNK_SIZE + chunkX, chunkY, eyeZ / CHUNK_SIZE + chunkZ);
+										wc++;
+									}
+								}
+
+								if (xDir == 1) {
+									zDir = 1;
+									xDir = 0;
+								}
+								else if (zDir == 1) {
+									xDir = -1;
+									zDir = 0;
+								}
+								else if (xDir == -1) {
+									zDir = -1;
+									xDir = 0;
+								}
+								else if (zDir == -1) {
+									xDir = 1;
+									zDir = 0;
+								}
+							}
 						}
 
-						for (int cur = start; cur != check; cur += dir) {
-							int chunkX = zDir != 0 ? lastX : cur;
-							int chunkY = 0;
-							int chunkZ = zDir != 0 ? cur : lastZ;
+					}
+					else {
 
-							addChunk(eyeX / CHUNK_SIZE + chunkX, chunkY, eyeZ / CHUNK_SIZE + chunkZ);
-						}
+						if (!started) started = true;
 
-						if (xDir == 1) {
-							zDir = 1;
-							xDir = 0;
-						}
-						else if (zDir == 1) {
-							xDir = -1;
-							zDir = 0;
-						}
-						else if (xDir == -1) {
-							zDir = -1;
-							xDir = 0;
-						}
-						else if (zDir == -1) {
-							xDir = 1;
-							zDir = 0;
+						std::vector<glm::vec3>::iterator it;
+						for (it = chunkList.begin(); it != chunkList.end();) {
+							glm::vec3 c = *it;
+							//std::cout << "c: " << c.x << std::endl;
+							if (glm::distance(glm::vec3(c.x, 0, c.z) * (float)CHUNK_SIZE, glm::vec3(eyeX, 0, eyeZ)) > maxSizeSqrt * CHUNK_SIZE) {
+								chunkDequeue.push(c);
+								it = chunkList.erase(it);
+								wc++;
+							}
+							else {
+								it++;
+							}
+
+							if (wc > 200) {
+								break;
+							}
 						}
 					}
 				}
 			}
+
+
 		}
 	};
 
@@ -325,13 +478,20 @@ int main(int argc, char** argv) {
 	glUseProgram(shaderProgram);
 	GLuint projectionID = glGetUniformLocation(shaderProgram, "projectionMatrix");
 	glUniformMatrix4fv(projectionID, 1, GL_FALSE, glm::value_ptr(projection));
+	glUniform1i(glGetUniformLocation(shaderProgram, "materials"), 0); // 0th location
+
+
 	GLuint viewID = glGetUniformLocation(shaderProgram, "viewMatrix");
 	GLuint modelViewID = glGetUniformLocation(shaderProgram, "modelViewMatrix");
 
 	std::cout << "ID::" << modelViewID << std::endl;
 
 
-	
+	//float a = 5.51;
+	//int b = static_cast<int>(a);
+	//std::cout << b << std::endl;
+
+
 	while (!glfwWindowShouldClose(window))
 	{
 		if (t >= 1.0f) {
@@ -375,6 +535,8 @@ int main(int argc, char** argv) {
 			fw.y = sin(xrotation);
 			fw.z = cos(xrotation) * sin(-yrotation);
 
+			glm::vec3 eyeOld = eye;
+
 			if (forward) {
 				eye += fw;
 			}
@@ -399,14 +561,55 @@ int main(int argc, char** argv) {
 				eye -= up;
 			}
 
+			velocity.y += -1.f / fps; // velocity changes at 9.8 m/s
+
+			//eye.y += velocity.y;
+
+			glm::vec3 feetPos = eye - glm::vec3(0, 2.1f, 0);
+			glm::vec3 feetChunk = glm::vec3((int)feetPos.x / CHUNK_SIZE, (int)(feetPos.y) / CHUNK_SIZE, (int)feetPos.z / CHUNK_SIZE);
+
+			//Chunk cur = std::find(chunks.begin(), chunks.end(), eyeChunk);
+			if (chunks.find(feetChunk) != chunks.end()){ // chunk exists at that pos
+				Chunk* c = chunks.at(feetChunk);
+
+				int x = (int)feetPos.x % CHUNK_SIZE;
+				int y = (int)feetPos.y % CHUNK_SIZE;
+				int z = (int)feetPos.z % CHUNK_SIZE;
+
+				//if (c->materials[x][y][z]) {
+					// STOP, onnGROUND
+				//	eye.y = (feetChunk.y * CHUNK_SIZE) + y + 3;
+					//velocity.y = 0;
+
+				//}
+
+
+				
+			}
+
+			//if (space) {
+			//	eye += up;
+			//}
+
+			//if (shift) {
+			//	eye -= up;
+			//}
+
+
+
+
+			distanceMoved += glm::distance(eye, eyeOld);
+
+
 			t += dt;
 			accumulator -= dt;
 			rot += dt;
 
-			int chunksPerUpdate = 5;
-
+			int chunksPerUpdate = 10;
 			for (int i = 0; i < chunksPerUpdate; i++) {
+				//if (chunkQueue.empty() && chunkDequeue.empty()) break;
 
+				
 				if (!chunkQueue.empty()) {
 					//chunkMutex.lock();
 					std::pair<glm::vec3, Chunk*> pair = chunkQueue.front();
@@ -416,7 +619,7 @@ int main(int argc, char** argv) {
 					glBindVertexArray(c->vao);
 
 
-					glGenBuffers(1, &c->iID);
+					glGenBuffers(1, &(c->iID));
 					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, c->iID);
 					glBufferData(GL_ELEMENT_ARRAY_BUFFER, c->indices.size() * sizeof(GL_UNSIGNED_INT), c->indices.data(), GL_DYNAMIC_DRAW);
 
@@ -424,6 +627,12 @@ int main(int argc, char** argv) {
 
 					glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(GL_UNSIGNED_INT), (GLvoid*)0);
 					glEnableVertexAttribArray(0);
+
+
+					glBindBuffer(GL_ARRAY_BUFFER, c->tID);
+					glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GL_FLOAT), (GLvoid*)0);
+
+					glEnableVertexAttribArray(1);
 
 					glBindVertexArray(0); // Unbind VAO
 
@@ -434,9 +643,23 @@ int main(int argc, char** argv) {
 					chunkQueue.pop(); // delete the item that was just inserted into chunks
 
 				}
-				else {
-					break;
+
+				int* anint = new int(11);
+
+				//int anInt = new int[11];
+
+				if (!chunkDequeue.empty()) {
+					glm::vec3 c = chunkDequeue.front();
+
+					//delete chunks.at(c);
+					Chunk* chunk = chunks.at(c);
+					chunks.erase(c);
+					chunkDequeue.pop();
+
+					//	if(c)
+					delete chunk;
 				}
+
 			}
 
 		}
@@ -451,6 +674,8 @@ int main(int argc, char** argv) {
 			glm::vec3(0, 1, 0)
 		);
 
+
+
 		glUniformMatrix4fv(viewID, 1, GL_FALSE, glm::value_ptr(view));
 
 		//glfwMakeContextCurrent(window);
@@ -459,20 +684,95 @@ int main(int argc, char** argv) {
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
-		glFrontFace(GL_CCW);
+		glFrontFace(GL_CW);
 
 
+
+		float farDist = far + CHUNK_SIZE;
+		const float midVertical = farDist * tanf((fov) * (3.1415926f / 180.f));
+		const float midHorizontal = midVertical * aspect;
+
+		glm::vec3 eyeRight = normalize(cross(fw, up));
+		glm::vec3 eyeUp = normalize(cross(eyeRight, fw));
+
+		glm::vec3 fwFar = normalize(fw) * farDist;
+
+
+		//std::cout << eyeUp.x << ", " << eyeUp.y << ", " << eyeUp.z << std::endl;
+
+
+
+		//Plane nearPlane = {eye + near * fw, fw};
+		Plane farPlane = { eye + fwFar, -fw };
+		Plane leftPlane = { eye, glm::cross((fwFar)-(eyeRight * midHorizontal), eyeUp) };
+		Plane rightPlane = { eye, glm::cross(eyeUp, (fwFar)+(eyeRight * midHorizontal)) };
+		Plane topPlane = { eye, glm::cross(eyeRight, (fwFar)-(eyeUp * midVertical)) };
+		Plane bottomPlane = { eye, glm::cross((fwFar)+(eyeUp * midVertical), eyeRight) };
+
+
+		glm::vec3 eyeChunkPos = glm::vec3((int)eye.x - 1 / CHUNK_SIZE, (int)eye.y / CHUNK_SIZE, (int)eye.z / CHUNK_SIZE);
+		//glm::vec3 leftPlane = eye;
+
+		int draw = 0, skip = 0;
 		std::unordered_map<glm::vec3, Chunk*>::iterator it;
 		for (it = chunks.begin(); it != chunks.end(); it++)
 		{
-			Chunk* c = (Chunk*)it->second;
+			glm::vec3 chunkPos = it->first;
 
-			glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(c->modelView));
-			glBindVertexArray(c->vao);
-			glDrawElements(GL_TRIANGLES, c->indicesCount, GL_UNSIGNED_INT, (void*)0);
-			glBindVertexArray(0);
+
+			//std::cout << chunkPos.x << ", " << chunkPos.y << ", " << chunkPos.z << std::endl;
+
+
+			//if (curChunk) std::cout << "egg" << std::endl;
+			chunkPos *= CHUNK_SIZE;
+			bool curChunk = glm::distance(eye, chunkPos) <= CHUNK_SIZE * sqrt(3);
+
+			//if (curChunk) std::cout << "CURCHUNK" << std::endl;
+
+			glm::vec3 chunkZ = chunkPos + glm::vec3(0, 0, CHUNK_SIZE);
+			glm::vec3 chunkX = chunkPos + glm::vec3(CHUNK_SIZE, 0, 0);
+			glm::vec3 chunkXYZ = chunkPos + glm::vec3(CHUNK_SIZE, 0, CHUNK_SIZE);
+
+			/*glm::vec3 chunkY = chunkPos + glm::vec3(0, CHUNK_SIZE, 0);
+
+			glm::vec3 chunkZY = chunkPos + glm::vec3(0, CHUNK_SIZE, CHUNK_SIZE);
+			glm::vec3 chunkXY = chunkPos + glm::vec3(CHUNK_SIZE, CHUNK_SIZE, 0);
+			glm::vec3 chunkXYZ = chunkPos + glm::vec3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);*/
+
+			// y is irrelevant right now
+
+			//glm::vec3 n = (fw);
+			///glm::vec3 p = (eye);
+
+			// direction, point - eye
+
+
+			if (!it->second->empty &&( curChunk
+				|| frustumCulling(chunkPos, farPlane, leftPlane, rightPlane, topPlane, bottomPlane)
+				|| frustumCulling(chunkXYZ, farPlane, leftPlane, rightPlane, topPlane, bottomPlane)
+				|| frustumCulling(chunkZ, farPlane, leftPlane, rightPlane, topPlane, bottomPlane)
+				|| frustumCulling(chunkX, farPlane, leftPlane, rightPlane, topPlane, bottomPlane))) {
+				Chunk* c = (Chunk*)it->second;
+
+				glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(c->modelView));
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, texture1);
+
+				glBindVertexArray(c->vao);
+				glDrawElements(GL_TRIANGLES, c->indicesCount, GL_UNSIGNED_INT, (void*)0);
+				glBindVertexArray(0);
+				//draw++;
+			}
+			else {
+				//skip++;
+			}
+
+
 
 		}
+
+		//	std::cout << draw << ", " << skip << std::endl;
 
 
 		glDisable(GL_CULL_FACE);
@@ -487,3 +787,4 @@ int main(int argc, char** argv) {
 	glfwTerminate();
 	return 0;
 }
+

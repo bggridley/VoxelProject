@@ -19,10 +19,14 @@ public:
 	std::vector<GLuint> indices;
 	static GLuint vID; // vertices
 	GLuint iID; // indices
-
+	static GLuint tID; // figure out a better way to do this later...
+	static GLuint verticesCount;
+	static GLuint texCount;
+	bool empty = true;
+	//char materials[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
 private:
-	char materials[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+	
 	static GLuint program;
 	int getIndex(int x, int y, int z);
 };
