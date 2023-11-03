@@ -3,8 +3,9 @@
 #include "GLFW/glfw3.h"
 #include "glm.hpp"
 #include <vector>
+#include <chrono>
 
-constexpr auto CHUNK_SIZE = 64;
+constexpr auto CHUNK_SIZE = 72;
 
 
 class Chunk {
@@ -18,11 +19,15 @@ public:
 	glm::mat4 modelView;
 	std::vector<GLuint> indices;
 	static GLuint vID; // vertices
+
+	static int totalCount;
+	static std::chrono::duration<double> totalTime; 
 	GLuint iID; // indices
 	static GLuint tID; // figure out a better way to do this later...
 	static GLuint verticesCount;
 	static GLuint texCount;
 	bool empty = true;
+	int xo, yo, zo;
 	//char materials[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
 private:

@@ -1,11 +1,14 @@
 #include "Chunk.h"
+#include "World.h"
 #include <iostream>
 #include <GL/glew.h>
 #include "SimplexNoise.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
+#include <chrono>
 #include <vector>
+
 
 GLuint Chunk::vID;
 GLuint Chunk::tID;
@@ -13,9 +16,12 @@ GLuint Chunk::program;
 GLuint Chunk::verticesCount;
 GLuint Chunk::texCount;
 int Chunk::totalTriangles;
+int Chunk::totalCount;
+std::chrono::duration<double> Chunk::totalTime;
 
 // call this statically
 void Chunk::init(GLuint shader) {
+	totalTime = std::chrono::duration<double>::zero();
 	totalTriangles = 0;
 	verticesCount = pow(CHUNK_SIZE, 3) * 8 * 3 * 3;
 	texCount = pow(CHUNK_SIZE, 3) * 8 * 3 * 2;
@@ -254,6 +260,10 @@ void Chunk::init(GLuint shader) {
 }
 
 Chunk::Chunk(int xo, int yo, int zo) {
+	this->xo = xo;
+	this->yo = yo;
+	this->zo = zo;
+
 	modelView = glm::translate(glm::mat4(1), glm::vec3(xo, yo, zo));
 	char materials[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 	//std::cout << pow(CHUNK_SIZE, 3) << std::endl;
@@ -262,15 +272,21 @@ Chunk::Chunk(int xo, int yo, int zo) {
 
 	//std::vector<GLuint> indices;
 
+	auto start = std::chrono::high_resolution_clock::now();
 
-	float scale = 600.0f;
 	bool visited[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+	//bool occlusion[CHUNK_SIZE][CHUNK_SIZE];
+
 	for (int x = 0; x < CHUNK_SIZE; x++) {
 		for (int z = 0; z < CHUNK_SIZE; z++) {
-			float height = ((SimplexNoise::noise((xo + x) / scale, (zo + z) / scale) + 1) / 2 * CHUNK_SIZE * 2)
-				+ (SimplexNoise::noise((xo + x) / 100.f, (zo + z) / 100.f) + 1) / 2 * CHUNK_SIZE * (((SimplexNoise::noise((xo + x) / scale, (zo + z) / scale) + 1) / 2));
-			+(SimplexNoise::noise((xo + x) / 50.f, (zo + z) / 50.f) + 1) / 2 * CHUNK_SIZE * (((SimplexNoise::noise((xo + x) / scale, (zo + z) / scale) + 1) / 2)
-				+ (SimplexNoise::noise((xo + x) / 10.f, (zo + z) / 10.f)) / 2 * CHUNK_SIZE);
+
+			auto noise1 = std::chrono::high_resolution_clock::now();
+			float height = World::getHeight(xo + x, zo + z);
+
+			auto noise2 = std::chrono::high_resolution_clock::now();
+
+			//std::chrono::duration<double> ddd = noise2 - noise1;
+			//std::cout << ddd.count() << std::endl;
 			//float height2 = ((SimplexNoise::noise((xo + x) / scale, (zo + z) / scale) + 1) / 2 * CHUNK_SIZE);
 
 			//std::cout << height << ", " << height2 << std::endl;// +((SimplexNoise::noise((xo + x) / 100, (zo + z) / 100) + 1) / 2 * CHUNK_SIZE);
@@ -288,13 +304,18 @@ Chunk::Chunk(int xo, int yo, int zo) {
 		}
 	}
 
+	auto end1 = std::chrono::high_resolution_clock::now();
+
+	//std::chrono::duration<double> duration = end1 - start;
+	//std::cout << duration.count() << std::endl;
+
 	int x = 0, y = 0, z = 0;
 
-	int sx, sy, sz;
-	int ex, ey, ez;
-
-
 	// naive greedy mesh..... epic dynamic progrraming
+	// LOD - decreasae level of detail
+	//performaance measuring here::
+
+
 
 	for (int x = 0; x < CHUNK_SIZE; x++) {
 		for (int y = 0; y < CHUNK_SIZE; y++) {
@@ -304,7 +325,7 @@ Chunk::Chunk(int xo, int yo, int zo) {
 				int endX = x;
 				int endY = y;
 				int endZ = z;
-
+					
 				visited[x][y][z] = true;
 
 				while (endZ != CHUNK_SIZE - 1 && !visited[x][y][endZ + 1] && materials[x][y][endZ + 1]) {
@@ -437,50 +458,9 @@ Chunk::Chunk(int xo, int yo, int zo) {
 				indices.push_back((bottomLeftBack)+20);
 				indices.push_back((bottomRightBack)+21);
 				indices.push_back((bottomRightFront)+22);
-
 				indices.push_back((bottomRightFront)+22);
 				indices.push_back((bottomLeftFront)+23);
 				indices.push_back((bottomLeftBack)+20);
-
-				/*
-
-				// right face
-
-				/*
-				indices.push_back((bottomRightBack)+2);
-				indices.push_back((bottomRightFront)+3);
-				indices.push_back((topRightFront)+7);
-				indices.push_back((topRightFront)+7); // right | x = 0 to 1, z 1 y 0 to 1
-				indices.push_back((topRightBack)+6);
-				indices.push_back((bottomRightBack)+2);
-
-				// left face
-
-
-				indices.push_back((bottomLeftFront)+0);
-				indices.push_back((bottomLeftBack)+1);
-				indices.push_back((topLeftBack)+5);
-				indices.push_back((topLeftBack)+5);
-				indices.push_back((topLeftFront)+4);
-				indices.push_back((bottomLeftFront)+0);
-
-				indices.push_back((bottomLeftFront)+0);
-				indices.push_back((bottomRightFront)+3);
-				indices.push_back((bottomRightBack)+2);
-				indices.push_back((bottomRightBack)+2);
-				indices.push_back((bottomLeftBack)+1);
-				indices.push_back((bottomLeftFront)+0);
-
-				indices.push_back((topLeftFront)+4);
-				indices.push_back((topLeftBack)+5);
-				indices.push_back((topRightBack)+6);
-				indices.push_back((topRightBack)+6);
-				indices.push_back((topRightFront)+7);
-				indices.push_back((topLeftFront)+4);
-				*/
-
-
-
 			}
 		}
 	}
@@ -490,6 +470,12 @@ Chunk::Chunk(int xo, int yo, int zo) {
 	indicesCount = indices.size();
 	totalTriangles += (indices.size() / 3); // each element represents a vertex. 3 vertices = triangle
 
+	auto end2 = std::chrono::high_resolution_clock::now();
+
+	std::chrono::duration<double> duration = end2 - end1;
+	totalCount++;
+	totalTime += duration;
+	//std::cout << duration.count() << std::endl;
 	//glUseProgram(program);
 
 

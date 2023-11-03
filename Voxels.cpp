@@ -17,6 +17,7 @@
 #include <sstream>
 #include <filesystem>
 #include <string>
+#include <chrono>
 #include <stack>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -78,7 +79,7 @@ const GLchar* vertexShaderSource =
 "{\n"
 "gl_Position = projectionMatrix * viewMatrix * modelViewMatrix * vec4(position, 1.0);\n"
 "vec3 mvPos = vec3(modelViewMatrix * vec4(position.xyz, 1.0));\n"
-"light = vec3(vec4(mvPos.yyy, 1.0) / 256);\n"
+"light = vec3(vec4(mvPos.xyz, 1.0) / 256);\n"
 "tex = aTex;\n"
 "}\0";
 const GLchar* fragmentShaderSource =
@@ -164,31 +165,6 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 }
 
 int main(int argc, char** argv) {
-
-	std::stack<int> stack;
-	stack.push(1);
-	stack.push(2);
-	stack.push(3);
-
-	stack.pop();
-
-	stack.push(4);
-
-	stack.top();
-	stack.pop();
-
-	std::cout << stack.top();
-
-
-	int32_t nums[3] = { 2, 4, 3 };
-	std::cout << (nums[0] << nums[1] << nums[2]);
-
-
-	//glm::vec3 fw = { 1, 0, 0}; // pos on x
-
-	//glm::vec3 test = { 0, 1, 1+00 };
-
-	//std::cout << "DOT: " <<  glm::dot(fw, test) << std::endl;
 
 	if (GLFW_TRUE != glfwInit()) {
 		std::cout << "Failed to initialize GLFW." << std::endl;
@@ -312,7 +288,7 @@ int main(int argc, char** argv) {
 	*/
 
 	float near = 0.1f;
-	float far = 1000.f;
+	float far = 2000.f;
 	float fov = 60.0f;
 	glm::mat4 projection = glm::perspective(glm::radians<float>(fov), (float)mode->width / (float)mode->height, near, far);
 
@@ -355,16 +331,14 @@ int main(int argc, char** argv) {
 		int lastZAttempt = eye.z;
 
 		bool started = false;
-		int maxSize = 12;
-		int chunkHeight = 4;
+		int maxSize = 9;
+		int chunkHeight = 5;
 		float maxSizeSqrt = maxSize * sqrt(1.8);
 		int ticker = 0;
 
 		while (!glfwWindowShouldClose(window)) {
 
 			//std::cout << distanceMoved << std::endl;
-			if (distanceMoved > CHUNK_SIZE / 4) {
-				distanceMoved = 0;
 
 				int wc = 0; // working chunks
 
@@ -372,7 +346,7 @@ int main(int argc, char** argv) {
 				float eyeZ = eye.z;
 				if (chunkQueue.empty() && chunkDequeue.empty()) {
 					ticker++;
-					if (ticker % 4 == 0) {
+					if (ticker % 2 == 0) {
 						//std::cout << "huh" << std::endl;
 						// only do a new batch of chunks if the queue is fully processed...
 						if (!started) started = true;
@@ -382,7 +356,7 @@ int main(int argc, char** argv) {
 							addChunk(eyeX / CHUNK_SIZE, i, eyeZ / CHUNK_SIZE);
 							wc++;
 						}
-						
+
 
 
 						for (int i = 0; i < maxSize; i++) {
@@ -412,7 +386,7 @@ int main(int argc, char** argv) {
 
 								for (int cur = start; cur != check; cur += dir) {
 									int chunkX = zDir != 0 ? lastX : cur;
-									
+
 									int chunkZ = zDir != 0 ? cur : lastZ;
 									for (int chunkY = 0; chunkY < chunkHeight; chunkY++) {
 
@@ -464,7 +438,6 @@ int main(int argc, char** argv) {
 						}
 					}
 				}
-			}
 
 
 		}
@@ -491,14 +464,27 @@ int main(int argc, char** argv) {
 	//int b = static_cast<int>(a);
 	//std::cout << b << std::endl;
 
+	std::chrono::duration<double> totalTime = std::chrono::duration<double>::zero();
+	int counter = 0;
 
 	while (!glfwWindowShouldClose(window))
 	{
 		if (t >= 1.0f) {
 			t -= 1.0f;
 
+			double avg = 0.0;
+			
+			if (counter != 0) {
+				avg = totalTime.count() / (double)counter;
+
+			}
+
+			double avgChunk = 0.0;
+				if (Chunk::totalCount != 0) {
+					avgChunk = Chunk::totalTime.count() / Chunk::totalCount;
+				}
 			//std::ostringstream os;
-			std::cout << "FPS: " << frames << " | UPS: " << updates << " | CHUNKS: " << chunks.size() << std::endl;
+			std::cout << "FPS: " << frames << " | UPS: " << updates << " | CHUNKS: " << chunks.size() << " | GPU LD: " << avg << "s | AVG GEN: " << avgChunk << "s" << std::endl;
 			//glfwSetWindowTitle(window, os.str().c_str());
 			curFPS = frames;
 			frames = 0;
@@ -510,7 +496,7 @@ int main(int argc, char** argv) {
 		deltaTime = float(newTime - currentTime);
 		currentTime = newTime;
 		accumulator += deltaTime;
-
+		
 		while (accumulator >= dt) {
 
 			updates++;
@@ -561,31 +547,31 @@ int main(int argc, char** argv) {
 				eye -= up;
 			}
 
-			velocity.y += -1.f / fps; // velocity changes at 9.8 m/s
+			//velocity.y += -1.f / fps; // velocity changes at 9.8 m/s
 
 			//eye.y += velocity.y;
 
-			glm::vec3 feetPos = eye - glm::vec3(0, 2.1f, 0);
-			glm::vec3 feetChunk = glm::vec3((int)feetPos.x / CHUNK_SIZE, (int)(feetPos.y) / CHUNK_SIZE, (int)feetPos.z / CHUNK_SIZE);
+			//glm::vec3 feetPos = eye - glm::vec3(0, 2.1f, 0);
+			//glm::vec3 feetChunk = glm::vec3((int)feetPos.x / CHUNK_SIZE, (int)(feetPos.y) / CHUNK_SIZE, (int)feetPos.z / CHUNK_SIZE);
 
-			//Chunk cur = std::find(chunks.begin(), chunks.end(), eyeChunk);
-			if (chunks.find(feetChunk) != chunks.end()){ // chunk exists at that pos
-				Chunk* c = chunks.at(feetChunk);
+			////Chunk cur = std::find(chunks.begin(), chunks.end(), eyeChunk);
+			//if (chunks.find(feetChunk) != chunks.end()) { // chunk exists at that pos
+			//	Chunk* c = chunks.at(feetChunk);
 
-				int x = (int)feetPos.x % CHUNK_SIZE;
-				int y = (int)feetPos.y % CHUNK_SIZE;
-				int z = (int)feetPos.z % CHUNK_SIZE;
+			//	int x = (int)feetPos.x % CHUNK_SIZE;
+			//	int y = (int)feetPos.y % CHUNK_SIZE;
+			//	int z = (int)feetPos.z % CHUNK_SIZE;
 
-				//if (c->materials[x][y][z]) {
-					// STOP, onnGROUND
-				//	eye.y = (feetChunk.y * CHUNK_SIZE) + y + 3;
-					//velocity.y = 0;
+			//	//if (c->materials[x][y][z]) {
+			//		// STOP, onnGROUND
+			//	//	eye.y = (feetChunk.y * CHUNK_SIZE) + y + 3;
+			//		//velocity.y = 0;
 
-				//}
+			//	//}
 
 
-				
-			}
+
+			//}
 
 			//if (space) {
 			//	eye += up;
@@ -609,10 +595,19 @@ int main(int argc, char** argv) {
 			for (int i = 0; i < chunksPerUpdate; i++) {
 				//if (chunkQueue.empty() && chunkDequeue.empty()) break;
 
-				
+
 				if (!chunkQueue.empty()) {
 					//chunkMutex.lock();
 					std::pair<glm::vec3, Chunk*> pair = chunkQueue.front();
+
+
+					if (chunks.find(pair.first) != chunks.end()) {
+						std::cout << "sent a duplicate chunk it. will break later." << std::endl;
+					}
+
+					auto start = std::chrono::high_resolution_clock::now();
+
+
 					Chunk* c = pair.second;
 
 					glGenVertexArrays(1, &(c->vao));
@@ -642,22 +637,27 @@ int main(int argc, char** argv) {
 					chunks.emplace(pair.first, c);
 					chunkQueue.pop(); // delete the item that was just inserted into chunks
 
+					auto end = std::chrono::high_resolution_clock::now();
+
+					totalTime += (end - start);
+					counter++;
 				}
 
-				int* anint = new int(11);
-
-				//int anInt = new int[11];
 
 				if (!chunkDequeue.empty()) {
 					glm::vec3 c = chunkDequeue.front();
 
 					//delete chunks.at(c);
+					if(chunks.find(c) != chunks.end()) {
 					Chunk* chunk = chunks.at(c);
 					chunks.erase(c);
-					chunkDequeue.pop();
+					
+
 
 					//	if(c)
 					delete chunk;
+					}
+					chunkDequeue.pop();
 				}
 
 			}
@@ -725,7 +725,7 @@ int main(int argc, char** argv) {
 
 			//if (curChunk) std::cout << "egg" << std::endl;
 			chunkPos *= CHUNK_SIZE;
-			bool curChunk = glm::distance(eye, chunkPos) <= CHUNK_SIZE * sqrt(3);
+			bool curChunk = glm::distance(eye, chunkPos) <= CHUNK_SIZE * 1.73205080757;
 
 			//if (curChunk) std::cout << "CURCHUNK" << std::endl;
 
@@ -746,23 +746,24 @@ int main(int argc, char** argv) {
 
 			// direction, point - eye
 
-
-			if (!it->second->empty &&( curChunk
+			draw++;
+			if (!it->second->empty && (curChunk
 				|| frustumCulling(chunkPos, farPlane, leftPlane, rightPlane, topPlane, bottomPlane)
 				|| frustumCulling(chunkXYZ, farPlane, leftPlane, rightPlane, topPlane, bottomPlane)
 				|| frustumCulling(chunkZ, farPlane, leftPlane, rightPlane, topPlane, bottomPlane)
 				|| frustumCulling(chunkX, farPlane, leftPlane, rightPlane, topPlane, bottomPlane))) {
 				Chunk* c = (Chunk*)it->second;
 
-				glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(c->modelView));
+					glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(c->modelView));
 
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, texture1);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, texture1);
 
-				glBindVertexArray(c->vao);
-				glDrawElements(GL_TRIANGLES, c->indicesCount, GL_UNSIGNED_INT, (void*)0);
-				glBindVertexArray(0);
-				//draw++;
+					glBindVertexArray(c->vao);
+					glDrawElements(GL_TRIANGLES, c->indicesCount, GL_UNSIGNED_INT, (void*)0);
+					glBindVertexArray(0);
+
+				
 			}
 			else {
 				//skip++;
@@ -787,4 +788,3 @@ int main(int argc, char** argv) {
 	glfwTerminate();
 	return 0;
 }
-
