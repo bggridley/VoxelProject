@@ -12,6 +12,7 @@ class Edge;
 
 class Triangle {
 public:
+	bool visited = false;
 	Edge* edges[3];
 	std::vector<Triangle*> children;
 
@@ -128,13 +129,13 @@ public:
 				Edge* oldEdge = other->findEdge(e->p1, e->p2);
 
 				if (oldEdge != nullptr && oldEdge->shared != nullptr) {
-					std::cout << "this is good" << std::endl;
+					//std::cout << "this is good" << std::endl;
 					//e->shared = oldEdge;
 
 				
 					e->shared = oldEdge->shared;
 					oldEdge->shared->shared = e;
-					std::cout << "not null!" << std::endl;
+					//std::cout << "not null!" << std::endl;
 				}
 			}
 		}
@@ -143,7 +144,7 @@ public:
 	Edge* findEdge(glm::vec2 p1, glm::vec2 p2) {
 		for (int i = 0; i < 3; i++) {
 			if (edges[i]->sameEdge(p1, p2)) {
-				std::cout << "find edge worked!" << std::endl;
+				//std::cout << "find edge worked!" << std::endl;
 				return edges[i];
 
 			}
@@ -159,7 +160,7 @@ public:
 			glm::vec2 e = edges[i]->p1;
 
 			if (e != p1 && e != p2) {
-				std::cout << "found " << e.x << ", " << e.y << std::endl;
+				//std::cout << "found " << e.x << ", " << e.y << std::endl;
 				return e;
 			}
 

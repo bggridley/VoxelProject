@@ -295,9 +295,8 @@ int main(int argc, char** argv) {
 	//std::cout << "TEST" << Primitives::pointInTriangle(testPoint, p3, p1, p2);
 
 
-	BackgroundChunk* c = new BackgroundChunk(); // does this evne work?
-	std::cout << "Wtf " << std::endl;
-	c->init();
+	BackgroundChunk* bgtest = new BackgroundChunk(); // does this evne work?
+	bgtest->init();
 
 	/*
 	glMatrixMode(GL_PROJECTION);
@@ -742,6 +741,7 @@ int main(int argc, char** argv) {
 		std::unordered_map<glm::vec3, Chunk*>::iterator it;
 		for (it = chunks.begin(); it != chunks.end(); it++)
 		{
+			break;
 			glm::vec3 chunkPos = it->first;
 
 
@@ -799,9 +799,17 @@ int main(int argc, char** argv) {
 		}
 
 
-		for (const glm::vec2 &num: poissonPoints) {
-			VerticalLine::render(modelViewID, num.x, num.y);
-		}
+		//for (const glm::vec2 &num: poissonPoints) {
+		//	VerticalLine::render(modelViewID, num.x, num.y);
+		//}
+
+
+		glCullFace(GL_FRONT);
+		glFrontFace(GL_CCW);
+
+		bgtest->render(modelViewID);
+
+	
 
 
 
