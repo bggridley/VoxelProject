@@ -19,6 +19,10 @@
 #include <string>
 #include <chrono>
 #include <stack>
+#include "VerticalLine.h"
+#include "PoissonSampler.h"
+#include "Primitives.h"
+#include "BackgroundChunk.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -279,7 +283,21 @@ int main(int argc, char** argv) {
 
 
 
+	//std::cout << "TEST RESULTS NOW " << std::endl;
 
+	///glm::vec2 p3(3, 3);
+	//glm::vec2 p2(4, 4);
+	//glm::vec2 p1 (5, 3);
+
+	//glm::vec2 testPoint(4.5, 3.3);
+
+
+	//std::cout << "TEST" << Primitives::pointInTriangle(testPoint, p3, p1, p2);
+
+
+	BackgroundChunk* c = new BackgroundChunk(); // does this evne work?
+	std::cout << "Wtf " << std::endl;
+	c->init();
 
 	/*
 	glMatrixMode(GL_PROJECTION);
@@ -307,6 +325,11 @@ int main(int argc, char** argv) {
 
 	// pass this by value because it makes no sense to pass by reference if shaderprogram is on the stack....
 	Chunk::init(shaderProgram);
+	VerticalLine::init();
+	
+
+	// poisson points
+	std::vector<glm::vec2> poissonPoints = PoissonSampler::generatePoints(-CHUNK_SIZE * 4, -CHUNK_SIZE * 4, -CHUNK_SIZE * 2, -CHUNK_SIZE * 2);
 
 	std::string a = "helo";
 	std::string b = "hi";
@@ -485,6 +508,8 @@ int main(int argc, char** argv) {
 				}
 			//std::ostringstream os;
 			std::cout << "FPS: " << frames << " | UPS: " << updates << " | CHUNKS: " << chunks.size() << " | GPU LD: " << avg << "s | AVG GEN: " << avgChunk << "s" << std::endl;
+			std::cout << "POS:" << eye.x << ", " << eye.z << std::endl;
+			
 			//glfwSetWindowTitle(window, os.str().c_str());
 			curFPS = frames;
 			frames = 0;
@@ -772,6 +797,15 @@ int main(int argc, char** argv) {
 
 
 		}
+
+
+		for (const glm::vec2 &num: poissonPoints) {
+			VerticalLine::render(modelViewID, num.x, num.y);
+		}
+
+
+
+		
 
 		//	std::cout << draw << ", " << skip << std::endl;
 
