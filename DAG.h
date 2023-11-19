@@ -10,20 +10,16 @@ public:
 	}
 	~DAG();
 
-	void print(Triangle* tri = nullptr) {
-		return;
-
-		if (tri == nullptr) {
-			tri = root;
-		}
-
+	void print(Triangle* tri = nullptr, std::string indent = std::string("")) {
 		if (tri != nullptr) {
-			if (tri->children.size() == 0) {
-				tri->print();
-			}
+			
+
+			tri->print(indent);
+
+			indent = indent + "---";
 
 			for (int i = 0; i < tri->children.size(); i++) {
-				print(tri->children[i]);
+				print(tri->children[i], indent);
 			}
 		}
 	}
@@ -44,6 +40,7 @@ public:
 			if (sz == 0) {
 				t->visited = true;
 
+				bool add = true;
 				auto v = t->getVertices();
 				for (int i = 0; i < 3; i++) {
 					glm::vec2 p = v[i];
@@ -51,13 +48,17 @@ public:
 					if (p == root->edges[0]->p1 ||
 						p == root->edges[1]->p1 ||
 						p == root->edges[2]->p1) {
-						return;
+						add = false;
+
+			
+						break;
 					}
 				}
 
 
-
-				vec.push_back(t);
+				if (add) {
+					vec.push_back(t);
+				}
 				
 			}
 			else if (sz == 2) {
@@ -76,15 +77,19 @@ public:
 
 // find triangle in another triangle
 	Triangle* findTriangle(Triangle* cur, glm::vec2 p) {
-		if (cur == nullptr) cur = root;
-
 		std::vector<Triangle*> children = cur->children;
 		size_t numChildren = children.size();
 
 		if (numChildren == 0) {
 			//std::cout << "0 chilren" << std::endl;
 			// well, we have found the triangle!
-			return cur;
+			if (Primitives::pointInTriangle(p, cur->getVertices())) {
+				return cur;
+			}
+			else {
+				std::cout << "IDK how this happened. this is fugged up" << std::endl;
+			}
+			
 		}
 		else if (numChildren == 2) {
 			//children[0]->print();

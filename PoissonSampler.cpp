@@ -111,8 +111,21 @@ std::vector<glm::vec2> PoissonSampler::generatePoints(float sx, float sz, float 
 	}
 
 
+	// Use the random device to seed the random number generator
+	std::mt19937 g(rd());
+
+	// Shuffle the vector using std::shuffle
+	std::shuffle(ordered.begin(), ordered.end(), g);
+
 
 	std::cout << ordered.size() << " is amount of points 256x256" << std::endl;
+
+	//std::vector<glm::vec2> limited = std::vector<glm::vec2>();
+
+	//for (int i = 0; i < ordered.size() && i < 10; i++) {
+	//	limited.push_back(ordered[i]);
+	//}
+
 	return ordered;
 }
 

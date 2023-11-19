@@ -25,7 +25,13 @@ public:
 		children.reserve(2);
 
 		for (int i = 0; i < 3; i++) {
+			Edge* oldEdgeShared = t.edges[i]->shared;
+
 			this->edges[i] = new Edge(*t.edges[i], this);
+
+			if (oldEdgeShared != nullptr) {
+				oldEdgeShared->shared = this->edges[i];
+			}
 		}
 	}
 
@@ -45,9 +51,10 @@ public:
 
 	void setEdges(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, bool boundary = false, Edge* sharedEdge = nullptr) {
 
-		//if (Primitives::orientation(p1, p2, p3) == -1) {
-		//	std::swap(p3, p1);
-		//}
+		if (Primitives::orientation(p1, p2, p3) == -1) {
+			std::cout << "orientation swap" << std::endl;
+			std::swap(p3, p1);
+		}
 
 		//std::cout << "befoer EDGE FLIP" << std::endl;
 		//print();
@@ -132,13 +139,19 @@ public:
 					//std::cout << "this is good" << std::endl;
 					//e->shared = oldEdge;
 
-				
+					oldEdge->shared->shared = e;	
 					e->shared = oldEdge->shared;
-					oldEdge->shared->shared = e;
+					
 					//std::cout << "not null!" << std::endl;
 				}
 			}
 		}
+
+		//std::cout << "orient" << Primitives::orientation(glm::vec2(0.15, 0.15), glm::vec2(2.12, 0.12), glm::vec2(3.13, 0.13)) << std::endl;
+	}
+
+	Edge* findEdge(Edge* e) {
+		return findEdge(e->p1, e->p2);
 	}
 
 	Edge* findEdge(glm::vec2 p1, glm::vec2 p2) {
@@ -168,14 +181,16 @@ public:
 		}
 	}
 
-	void print() {
-		std::cout << "Triangle" << std::endl;
+	void print(std::string indent = std::string("")) {
+		std::cout << indent << "Triangle " << this << " | " << children.size() << " children" << std::endl;
 		for (int i = 0; i < 3; i++) {
 			if (edges[i] == nullptr) continue;
-			std::cout << "	Edge " << i << " (" << edges[i]->p1.x << " " << edges[i]->p1.y << "), (" << edges[i]->p2.x << ", " << edges[i]->p2.y << ")" << std::endl;
+			std::cout << indent << "	Edge " << i << " (" << edges[i]->p1.x << " " << edges[i]->p1.y << "), (" << edges[i]->p2.x << " " << edges[i]->p2.y << ")" << std::endl;
 
 			if (edges[i]->shared != nullptr) {
-				std::cout << "		Shared w/ Edge " << i << " (" << edges[i]->shared->p1.x << " " << edges[i]->shared->p1.y << "), (" << edges[i]->shared->p2.x << ", " << edges[i]->shared->p2.y << ")" << std::endl;
+				std::cout << indent << "		Shared w/ Edge " << i << " (" << edges[i]->shared->p1.x << " " << edges[i]->shared->p1.y << "), (" << edges[i]->shared->p2.x << " " << edges[i]->shared->p2.y << ")" << std::endl;
+				std::cout << indent << "		Incident on Tri: " << edges[i]->shared->triangle << std::endl;
+
 			}
 		}
 
