@@ -8,55 +8,42 @@
 #include "Edge.h"
 #include "GLFW/glfw3.h"
 #include "World.h"
+#include <chrono>
 // not worry about any of the implementation details right now for this
 // all we want to do is just generate the delaunay triangulation based on the Poisson Points
 // poisson sampling is 256x256
-constexpr int LOD_SIZE = 256;
 
 
 class BackgroundChunk {
 public:
 	int drawSize = 0;
-
+	int sx = 0, sz = 0;
 	GLuint vao;
 	GLuint vID;
 
 
-	BackgroundChunk() {
+	BackgroundChunk(int sx, int sz, float testDist=0) {
+		this->sx = sx;
+		this->sz = sz;
 
-	}
-
-	void init() {
 		//std::cout << "INIT background" << std::endl;
-		std::vector<glm::vec2> points = PoissonSampler::generatePoints(0, 0, 0, 0); // none of these args are actually used. fill in later with LOD_SIZZe  offset and what not bla hblah blah
+		std::vector<glm::vec2> points;
+		
+		if (testDist != 0) {
+			//std::cout << "gettin the test points" << std::endl;
+			points = PoissonSampler::generatePoints(0, 0, true, testDist);
+		} else{
+			points = PoissonSampler::generatePoints(sx, sz);
+		}
+			 // none of these args are actually used. fill in later with LOD_SIZZe  offset and what not bla hblah blah
 
+
+		auto start = std::chrono::high_resolution_clock::now();
 
 		glm::vec2 p1(0, 0);
 		glm::vec2 p2(LOD_SIZE * 2, 0);
 		glm::vec2 p3(0, LOD_SIZE * 2);
 		Triangle* root = new Triangle(p1, p2, p3, true);
-
-
-		//points.push_back(glm::vec2(128, 128));
-		//points.push_back(glm::vec2(50, 48));
-
-		//points.push_back(glm::vec2(180, 32));
-		//points.push_back(glm::vec2(128, 48));
-		//points.push_back(glm::vec2(234, 12));
-		//points.push_back(glm::vec2(34, 112));
-		//points.push_back(glm::vec2(76, 14));
-		//points.push_back(glm::vec2(195, 100));
-
-		//points.push_back(glm::vec2(112, 34));
-		//points.push_back(glm::vec2(76.1414, 14.54777));
-		//points.push_back(glm::vec2(40.1153, 100.533));
-
-
-
-
-
-
-//points.push_back(glm::vec2(42, 42));
 
 		DAG* dag = new DAG(root); // this has the root triangle // the root triangle needs to be an arbitrarily big triangle that can full cover a 256x256 area
 
@@ -64,20 +51,9 @@ public:
 			//std::cout << "actually got here" << std::endl;
 			glm::vec2 p = points[i];
 
-			// find the triangle that the point is in
-
 			Triangle* cur = dag->findTriangle(root, p);
 
-			//std::cout << "INSERTING POINT :" << p.x << ", " << p.y << std::endl;
-
-			//std::cout << "INTO THIS TRIANGLE" << std::endl;
-
-			//cur->print();
-
-			// add the new sub triangls, ensuring that the edges are the same
-
-			//std::cout << (cur == nullptr) << std::endl;
-			// check if it's incident on an edge or not !!!
+			if (cur == nullptr) continue;
 
 			Edge* incidentEdge = nullptr;
 
@@ -131,8 +107,10 @@ public:
 
 						if (e1 != nullptr && edge->shared != nullptr && !edge->boundary) {
 							
-							std::cout << "e1 has " << e1->triangle->children.size() << "children" << std::endl;
-							std::cout << "edge->shared has " << edge->shared->triangle->children.size() << "children" << std::endl;
+							// THESE DEBUG LINES FIXED THE ENTIRE PROJECT
+							// :)
+							//std::cout << "e1 has " << e1->triangle->children.size() << "children" << std::endl;
+							//std::cout << "edge->shared has " << edge->shared->triangle->children.size() << "children" << std::endl;
 
 							
 
@@ -155,146 +133,32 @@ public:
 				cur->edges[1]->shared = nullptr;
 				cur->edges[2]->shared = nullptr;
 
-
-				//std::cout << "CUR NOW HAS" << std::endl;
-				//cur->print();
-
-				//t1->print();
-				//t2->print();
-
-				//t3->print();
-
-				//std::cout << std::endl;
-
-				// 1 check 2
-				// 1 check 3
-
-				// 3 check 2
-
-				// that's all
-
-
-
-
-
-	/*			{
-					t1->edges[2]->shared = t3->edges[1];
-					t1->edges[1]->shared = t2->edges[2];
-					t1->edges[0]->shared = cur->edges[0]->shared;
-
-					t2->edges[2]->shared = t1->edges[1];
-					t2->edges[1]->shared = t3->edges[2];
-					t2->edges[0]->shared = cur->edges[1]->shared;
-
-
-					t3->edges[2]->shared = t2->edges[1];
-					t3->edges[1]->shared = t1->edges[2];
-					t3->edges[0]->shared = cur->edges[2]->shared;
-
-
-					if (t1->edges[0]->shared != nullptr) {
-						t1->edges[0]->shared->shared = t1->edges[0];
-
-					}
-
-					if (t2->edges[0]->shared != nullptr) {
-						t2->edges[0]->shared->shared = t2->edges[0];
-					}
-
-					if (t3->edges[0]->shared != nullptr) {
-						t3->edges[0]->shared->shared = t3->edges[0];
-					}
-				}*/
-
-				/// ^^^ WE CAN REPLACE THIS BS LATER WITH A NICE "setSharedBetween" in triangle class
-				// can literally just do some clever vector math. since the edges are guaranteed to be in
-				// CCW order all the time, we can literally just do a 3 x 3 check on vec1 - vec2. if they're
-				// the same, then we set the shared edges between them  :) 
-
-				// now, for each edge, we just have to find the
-				// point on the triangle adjacent through shared
-
-				// get the OUTER one's from the PARENT
-				// this is actually really cool
-
-				// we know each case uses the edge from CUR, and some other point on an adjacent triangle
-
-				// the adjacent triangle
-				// -> shared is the edge we will flip if it happens
-
 				cur->children.push_back(t1);
 				cur->children.push_back(t2);
 				cur->children.push_back(t3);
-				// we also need to consider what happens if and edge flip appened incident on
-				// the current triangle
 
-				// add the kiddos
-
-				//Edge* shared3 = t1->edges[0];
-				//Edge* shared2 = t2->edges[2];
-				//Edge* shared1 = t3->edges[1];
-
-
-
-				//// TODO MAKE SURE WE ACTUALLY USE THE RIGHT EDGES HERE TO CHECK!!!!!!!!!!!!!!!!!!!
-				/////!!!!!!!!!!!!!!!!!
-
-
-				////!!!!!!!!!!
-				////! 
-				//if (shared3 != nullptr && shared3->shared != nullptr) {
-				//	legalizeEdge(shared3, p);
-				//}
-
-				//if (shared2 != nullptr && shared2->shared != nullptr) {
-				//	legalizeEdge(shared2, p);
-				//}
-
-				//if (shared1 != nullptr && shared1->shared != nullptr) {
-				//	legalizeEdge(shared1, p);
-				//}
 
 				for (int i = 0; i < toLegalize.size() && i < 3; i++) {
 					legalizeEdge(toLegalize[i], p);
 				}
 
-
-
-
-
-
-
-
-
-				//glm::vec2 testvec = (t1->edges[1]->p2 - t2->edges[2]->p1);
-
-				//std::cout << "SHOULD BE 0 " << testvec.x << ", " << testvec.y << std::endl;
-
-
-
-
 			}
 			else {
-				std::cout << "ruh roh, an edge!" << std::endl;
-				// we can actually find a way to completely avoid doing this.... we can just do a check and if it's 
-				// on a point, we'll shift it some direction
-				// that'll at least save us some time
-
-
-				// 4 edges to check
-
+				//std::cout << "ruh roh, an edge!" << std::endl;
 			}
 		}
 
-		//dag->print(root);
-
 		std::vector<Triangle*> tris = dag->extract();
 
-		//for (int i = 0; i < tris.size(); i++) {
-		//	tris[i]->print();
-		//}
+		if (testDist != 0) {
+			auto end = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double> duration = end - start;
+
+			std::cout << "n: " << points.size() << "| time: " << duration.count() << std::endl;
+		}
+
 		GLfloat* verts = (GLfloat*)malloc(sizeof(GLfloat) * 3 * 3 * tris.size());
-		std::cout << "final triangulation size is" << tris.size() << std::endl;
+		//std::cout << "final triangulation size is" << tris.size() << std::endl;
 
 
 
@@ -306,10 +170,12 @@ public:
 			for (int j = 0; j < 3; j++) {
 				auto p = v[j];
 				verts[index++] = p.x;
-				verts[index++] = (World::getHeight(p.x, p.y));
+				verts[index++] = (World::getHeight(sx + p.x, sz + p.y));
 				verts[index++] = (p.y);
 			}
 		}
+
+	
 
 
 		drawSize = 3 * 3 * tris.size();
@@ -350,7 +216,7 @@ public:
 	}
 
 	void render(GLuint modelViewID) {
-		glm::mat4 modelView = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+		glm::mat4 modelView = glm::translate(glm::mat4(1), glm::vec3(sx, 0, sz));
 
 		glUniformMatrix4fv(modelViewID, 1, GL_FALSE, glm::value_ptr(modelView));
 
@@ -387,32 +253,8 @@ public:
 			glm::vec2 p2 = e->p2;
 
 			if (Primitives::orientation(p, p1, p2) == -1) {
-			//	p2 = p;
-			//	p = e->p2;
-
-			//	//
-			//	
-			//	
-			//	//<< "orientation broke" << std::endl;
+	
 			}
-
-			//cur->print();
-			//adj->print();
-
-
-			// okay so this is right ^^^
-			// up here
-			// it's jsut the bit where we find out the other points that is bad !!
-
-
-
-	/*		std::cout << "checking in circle with points" << std::endl;
-
-			std::cout << p.x << ", " << p.y << std::endl;
-			std::cout << p1.x << ", " << p1.y << std::endl;
-			std::cout << p2.x << ", " << p2.y << std::endl;
-			std::cout << q.x << ", " << q.y << std::endl;*/
-
 
 			if (Primitives::inCircle(p, p1, p2, q)) {
 				if (cur->children.size() == 0 && adj->children.size() == 0) {
@@ -446,9 +288,9 @@ public:
 					Edge* p1q = adjCopy->findEdge(p1, q);
 
 
-					adjCopy->print();
-					adj->print();
-					std::cout << "done";
+					//adjCopy->print();
+					//adj->print();
+					//std::cout << "done";
 
 					Edge* p1p = nullptr;
 					if (p1q == nullptr) {
@@ -487,8 +329,14 @@ public:
 					Edge* qe = qtri->findEdge(p, q);
 					Edge* pe = ptri->findEdge(p, q);
 
-					qe->shared = pe;
-					pe->shared = qe;
+					if (qe != nullptr) {
+
+						qe->shared = pe;
+					}
+
+					if (pe != nullptr) {
+						pe->shared = qe;
+					}
 
 					/*
 
@@ -527,11 +375,11 @@ public:
 					auto leg1 = ptri->findEdge(p2, p);
 					auto leg2 = qtri->findEdge(p1, p);
 
-					if (leg1->shared != nullptr) {
+					if (leg1 != nullptr && leg1->shared != nullptr) {
 						legalizeEdge(leg1, q);
 					}//
 
-					if (leg2->shared != nullptr) {
+					if (leg1 != nullptr && leg2->shared != nullptr) {
 						legalizeEdge(leg2, q);
 					}
 
@@ -552,7 +400,7 @@ public:
 		std::vector<GLfloat> triPoints = std::vector<GLfloat>();
 		std::vector<glm::vec3> p = std::vector<glm::vec3>();
 
-		std::vector<glm::vec2> pts = PoissonSampler::generatePoints(0, 0, 0, 0); // none of these args are actually used. fill in later with LOD_SIZZe  offset and what not bla hblah blah
+		std::vector<glm::vec2> pts = PoissonSampler::generatePoints(0, 0); // none of these args are actually used. fill in later with LOD_SIZZe  offset and what not bla hblah blah
 
 
 		for (int i = 0; i < pts.size(); i++) {

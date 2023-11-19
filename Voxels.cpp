@@ -168,6 +168,13 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 	}
 }
 
+void runTests() {
+	float dist[12] = { 40, 30, 20, 15, 10, 5, 3, 2, 1, 0.5f, 0.25f, 0.15f };
+	for (int i = 0; i < 12; i++) {
+		new BackgroundChunk(0, 0, dist[i]);
+	}
+}
+
 int main(int argc, char** argv) {
 
 	if (GLFW_TRUE != glfwInit()) {
@@ -294,9 +301,9 @@ int main(int argc, char** argv) {
 
 	//std::cout << "TEST" << Primitives::pointInTriangle(testPoint, p3, p1, p2);
 
+//	runTests();
 
-	BackgroundChunk* bgtest = new BackgroundChunk(); // does this evne work?
-	bgtest->init();
+	BackgroundChunk* bgtest = new BackgroundChunk(0, 0); // does this evne work?
 
 	/*
 	glMatrixMode(GL_PROJECTION);
@@ -328,12 +335,7 @@ int main(int argc, char** argv) {
 	
 
 	// poisson points
-	std::vector<glm::vec2> poissonPoints = PoissonSampler::generatePoints(-CHUNK_SIZE * 4, -CHUNK_SIZE * 4, -CHUNK_SIZE * 2, -CHUNK_SIZE * 2);
-
-	std::string a = "helo";
-	std::string b = "hi";
-
-	//(a + b).length() ? > 120;
+	std::vector<glm::vec2> poissonPoints = PoissonSampler::generatePoints(0, 0);
 
 
 	auto chunkThreadBody = []() {
@@ -741,7 +743,7 @@ int main(int argc, char** argv) {
 		std::unordered_map<glm::vec3, Chunk*>::iterator it;
 		for (it = chunks.begin(); it != chunks.end(); it++)
 		{
-			break;
+			//break;
 			glm::vec3 chunkPos = it->first;
 
 
