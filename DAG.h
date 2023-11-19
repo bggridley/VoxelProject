@@ -2,6 +2,10 @@
 #include "Triangle.h"
 #include "Primitives.h"
 
+// https://github.com/spyridon97/Del-O-Matic/blob/master/src/DT/HistoryDAG.cxx
+// the implementation here made this trivial (to a certain degree) to make this work
+// although it did take some messing around with
+
 class DAG {
 public:
 	Triangle* root;
@@ -89,7 +93,7 @@ public:
 				return cur;
 			}
 			else {
-				std::cout << "IDK how this happened. this is fugged up" << std::endl;
+				std::cout << "If this is happening, we blew up the triangulation. -DAG.h" << std::endl;
 			}
 			
 		}

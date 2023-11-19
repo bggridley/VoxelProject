@@ -38,8 +38,6 @@ public:
 	Triangle(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, bool boundary=false, Triangle* adjacentTriangle=nullptr) {
 		children = std::vector<Triangle*>();
 
-		// we need to condition this to ALWAYS maintain CCW order
-
 		setEdges(p1, p2, p3, boundary);
 	}
 
@@ -52,63 +50,15 @@ public:
 	void setEdges(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, bool boundary = false, Edge* sharedEdge = nullptr) {
 
 		if (Primitives::orientation(p1, p2, p3) == -1) {
-			std::cout << "orientation swap" << std::endl;
+			std::cout << "orientation swap. this will never print though :)" << std::endl;
 			std::swap(p3, p1);
 		}
-
-		//std::cout << "befoer EDGE FLIP" << std::endl;
-		//print();
-
-		//std::cout << "END" << std::endl << std::endl;
-
-		//std::vector<Edge*> oldShared = std::vector<Edge*>();
-
-		//for (int i = 0; i < 3; i++) {
-		//	if (edges[i] != nullptr) {
-		//		if (edges[i]->shared != nullptr) {
-		//			oldShared.push_back(edges[i]->shared);
-		//			//edges[i]->shared->shared = nullptr;
-		//		}
-
-
-		//		//delete edges[i];
-		//		//edges[i] = nullptr;
-		//	}
-		//}
 
 		edges[0] = new Edge(this, p1, p2, boundary);
 		edges[1] = new Edge(this, p2, p3, boundary);
 		edges[2] = new Edge(this, p3, p1, boundary);
-
-		//for (int i = 0; i < 3; i++) {
-		//	Edge* e = edges[i];
-		//	for (int j = 0; j < oldShared.size(); j++) {
-		//		Edge* s = oldShared[j];
-		//		if (e->sameEdge(s)) {
-		//			e->shared = s;
-		//			s->shared = e;
-		//			std::cout << "found a same edge" << std::endl;
-		//		}
-		//	}
-
-		//	if (sharedEdge != nullptr && e->sameEdge(sharedEdge)) {
-		//		e->shared = sharedEdge;
-		//		sharedEdge->shared = e;
-		//	}
-		//}
-
-
 	}
-	
-	/// here's what we need to do
 
-	// find the triangle containing edge
-	// p1 to q
-
-	
-	// stuff like this is really not that fast
-	// but it's at least comprehensible
-	// 9 checks, still linear
 
 	void changeVertexTo(glm::vec2 start, glm::vec2 end, Triangle* other) {
 		for (int i = 0; i < 3; i++) {
@@ -129,16 +79,12 @@ public:
 			}
 
 
-
 			if (either) { // meaning, we have changed the current edge....
 
-			
 				Edge* oldEdge = other->findEdge(e->p1, e->p2);
 
 				if (oldEdge != nullptr && oldEdge->shared != nullptr) {
-					//std::cout << "this is good" << std::endl;
-					//e->shared = oldEdge;
-
+		
 					oldEdge->shared->shared = e;	
 					e->shared = oldEdge->shared;
 					
@@ -147,12 +93,19 @@ public:
 			}
 		}
 
-		//std::cout << "orient" << Primitives::orientation(glm::vec2(0.15, 0.15), glm::vec2(2.12, 0.12), glm::vec2(3.13, 0.13)) << std::endl;
 	}
 
 	Edge* findEdge(Edge* e) {
 		return findEdge(e->p1, e->p2);
 	}
+
+	// Not great but still linear
+	// A better construction of Triangle and Edge classes
+	// Could avoid constant searching like this
+	// Between two triangles that result in 9 calls each time
+	// Although, that's really not that bad...
+
+	// Room for improvement though.
 
 	Edge* findEdge(glm::vec2 p1, glm::vec2 p2) {
 		for (int i = 0; i < 3; i++) {
@@ -173,11 +126,8 @@ public:
 			glm::vec2 e = edges[i]->p1;
 
 			if (e != p1 && e != p2) {
-				//std::cout << "found " << e.x << ", " << e.y << std::endl;
 				return e;
 			}
-
-		
 		}
 	}
 
@@ -197,8 +147,9 @@ public:
 		std::cout << std::endl;
 	}
 
-	// make sure we cache this for faster accesss
-	// dont need to do this every single time
+	// Could store these instead of having to generate them each time
+	// But I really don't think it's an issue on modern hardware
+
 	std::vector<glm::vec2> getVertices() {
 		std::vector<glm::vec2> verts = std::vector<glm::vec2>();
 		verts.push_back(edges[0]->p1);

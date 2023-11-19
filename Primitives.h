@@ -1,3 +1,9 @@
+/*
+
+Author Stephen Derenski and Ben Gridley
+
+*/
+
 #pragma once
 #include "glm.hpp"
 #include <stdio.h>
@@ -29,47 +35,22 @@ public:
     }
 
     static bool pointOnLine(const glm::vec2& p, const glm::vec2& p1, const glm::vec2& p2, float epsilon = 1e-6) {
-        // Calculate the direction vector of the line
+        // Could also just check orientation between the two points lol
+        // this is only used once and 
+        // gets the right answers
+
         glm::vec2 lineDirection = glm::normalize(p2 - p1);
 
         glm::vec2 pointDirection = p - p1;
         glm::vec2 projection = glm::dot(pointDirection, lineDirection) * lineDirection;
         float distanceSquared = glm::length(pointDirection - projection);
 
-        // Check if the squared distance is within the epsilon squared
         return distanceSquared < (epsilon * epsilon);
     }
 
     static int pointInTriangle(const glm::vec2& point, std::vector<glm::vec2> v, float epsilon = 1e-6f) {
-        //glm::vec2 v0 = vertices[0];
-        //glm::vec2 v1 = vertices[1];
-        //glm::vec2 v2 = vertices[2];
-
-        //glm::vec2 e0 = v1 - v0;
-        //glm::vec2 e1 = v2 - v0;
-        //glm::vec2 e2 = point - v0;
-
-        //float dot00 = glm::dot(e0, e0);
-        //float dot01 = glm::dot(e0, e1);
-        //float dot02 = glm::dot(e0, e2);
-        //float dot11 = glm::dot(e1, e1);
-        //float dot12 = glm::dot(e1, e2);
-
-        //float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-
-        //// Compute barycentric coordinates
-        //float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-        //float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-        //if (u >= -epsilon && v >= -epsilon && (u + v) <= 1.0f + epsilon) {
-
-        //    // Check if the point is on an edge within epsilon
-        //    if (u <= epsilon || v <= epsilon || (u + v) >= 1.0f - epsilon) {
-        //        return 2; // On an edge
-        //    }
-        //    return 1; // Inside the triangle
-        //}
-
-        //return 0; // Outside the triangle
+        // Barycentric coords don't seem to work too well and seems like way more work
+        // orientation good :)
 
         return orientation(v[0], v[1], point) >= 0 && orientation(v[1], v[2], point) >= 0 && orientation(v[2], v[0], point) >= 0;
     }
