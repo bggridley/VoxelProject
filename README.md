@@ -16,8 +16,8 @@
 
 ![Time analysis](https://i.imgur.com/MvURnlA.png)
 
-
-If you would like to run the program, I would recommend using Visual Studio.
+Looks like *O(nlogn)* :)\
+If you would like to build and run the program, I would recommend using Visual Studio. No makefile included.
 
 ### Dependencies
 - Stb-master (included)
