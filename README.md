@@ -4,7 +4,7 @@
 [![VoxectlProject Video](https://img.youtube.com/vi/5QcHtZsGygo/1.jpg)](https://www.youtube.com/watch?v=5QcHtZsGygo)
 
 ## Features
- - LOD System - *Comp Geo final project ft. Stephen*
+ - LOD System - *Comp Geo final project ft. [Stephen Derenski](https://github.com/sderenski)*
 	- Randomized Incremental Delaunay Triangulation
 	- Bowyer-Watson method (see BackgroundChunk.h)
 	- Poisson Sampling for spaced random distributions (PoissonSampling.cpp)
