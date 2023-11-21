@@ -169,8 +169,8 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 }
 
 void runTests() {
-	float dist[12] = { 40, 30, 20, 15, 10, 5, 3, 2, 1, 0.5f, 0.25f, 0.15f };
-	for (int i = 0; i < 12; i++) {
+	float dist[13] = { 40, 30, 20, 15, 10, 5, 3, 2, 1, 0.5f, 0.25f, 0.15f, 0.05f };
+	for (int i = 0; i < 13; i++) {
 		new BackgroundChunk(0, 0, dist[i]);
 	}
 }
@@ -301,9 +301,9 @@ int main(int argc, char** argv) {
 
 	//std::cout << "TEST" << Primitives::pointInTriangle(testPoint, p3, p1, p2);
 
-//	runTests();
+	//runTests();
 
-	BackgroundChunk* bgtest = new BackgroundChunk(0, 0); // does this evne work?
+	BackgroundChunk* bgtest = new BackgroundChunk(-4096, -4096); // does this evne work?
 
 	/*
 	glMatrixMode(GL_PROJECTION);
@@ -312,7 +312,7 @@ int main(int argc, char** argv) {
 	*/
 
 	float near = 0.1f;
-	float far = 2000.f;
+	float far = 4096.f;
 	float fov = 60.0f;
 	glm::mat4 projection = glm::perspective(glm::radians<float>(fov), (float)mode->width / (float)mode->height, near, far);
 

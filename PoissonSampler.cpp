@@ -22,7 +22,7 @@ std::vector<glm::vec2> PoissonSampler::generatePoints(float sx, float sz, bool t
 	std::vector<glm::vec2> active = std::vector<glm::vec2>();
 	std::vector<glm::vec2> ordered = std::vector<glm::vec2>();
 
-	float w = 13 / sqrt(2); // controls grid size
+	float w = 10 / sqrt(2); // controls grid size
 
 
 	if (test) {
@@ -51,16 +51,16 @@ std::vector<glm::vec2> PoissonSampler::generatePoints(float sx, float sz, bool t
 	std::mt19937 eng(rd()); // Seed the generator
 
 
-	int numTimes = 1500 * 4;
+	int numTimes = 24000 * 4;
 
 	if (dist != 0) {
-		numTimes = 15000;
+		numTimes = 24000;
 	}
 
 	for (int total = 0; total < numTimes; total++) {
 		int activeSize = active.size();
 		if (activeSize > 0) {
-			std::uniform_real_distribution<> distr(w, w * 2.5); // Define the range [20, 60)
+			std::uniform_real_distribution<> distr(w * 0.25, w * 100); // Define the range [20, 60)
 			std::uniform_real_distribution<> testdistr(dist, 60); // Define the range [20, 60)
 			std::uniform_int_distribution<> index_dist(0, activeSize - 1);
 
@@ -110,7 +110,7 @@ std::vector<glm::vec2> PoissonSampler::generatePoints(float sx, float sz, bool t
 									}
 								}
 								else {
-									if (d < (1 - h) * (1 - h) * (1 - h) * 120) {
+									if (d < (1 - h) * (1 - h) * 50) {
 										ok = false;
 									}
 								}
@@ -145,22 +145,22 @@ std::vector<glm::vec2> PoissonSampler::generatePoints(float sx, float sz, bool t
 	// Shuffle the vector using std::shuffle
 	std::shuffle(ordered.begin(), ordered.end(), g);
 
+	std::cout << "Amount of points for triangulation:" << ordered.size() <<  std::endl;
+	//std::cout << ordered.size() << " is amount of points 256x256" << std::endl;
 
-	std::cout << ordered.size() << " is amount of points 256x256" << std::endl;
 
+	// {
+	//	int amnt = 16;
+	//	int increment = LOD_SIZE / amnt;
 
-	 {
-		int amnt = 16;
-		int increment = LOD_SIZE / amnt;
+	//	for (int i = 0; i < amnt; i++) {
+	//		ordered.push_back(glm::vec2(0, i * increment));
+	//		ordered.push_back(glm::vec2(LOD_SIZE, i * increment));
 
-		for (int i = 0; i < amnt; i++) {
-			ordered.push_back(glm::vec2(0, i * increment));
-			ordered.push_back(glm::vec2(LOD_SIZE, i * increment));
-
-			ordered.push_back(glm::vec2(i * increment, 0));
-			ordered.push_back(glm::vec2(i * increment, LOD_SIZE));
-		}
-	}
+	//		ordered.push_back(glm::vec2(i * increment, 0));
+	//		ordered.push_back(glm::vec2(i * increment, LOD_SIZE));
+	//	}
+	//}
 	 
 	 
 	 

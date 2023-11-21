@@ -2,7 +2,7 @@
 #include <vector>
 #include "glm.hpp"
 
-constexpr int LOD_SIZE = 512;
+constexpr int LOD_SIZE = 4096 * 2;
 // simple class with static functions that we will use to generate a poisson distribution within a certain area
 class PoissonSampler {
 public:
