@@ -1,11 +1,12 @@
 #include "PoissonSampler.h"
 #include <unordered_map>
-#include <glm.hpp>
-#include <gtc/random.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/random.hpp>
 #include <random>
 #include <cmath>
 #include "World.h"
 #include <iostream>
+#include <algorithm>
 
 // much inspiration for this implementation is based on coding train's implementation
 // based off this material:

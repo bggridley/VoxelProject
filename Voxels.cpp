@@ -4,12 +4,12 @@
 #include <GLFW/glfw3.h>
 #include "Chunk.h"
 #include <stdlib.h>
-#include "glm.hpp"
-#include "gtc/matrix_transform.hpp"
-#include "gtc/type_ptr.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iterator>
 #include <unordered_map>
-#include "gtx/hash.hpp"
+#include <glm/gtx/hash.hpp>
 #include <thread>
 #include <mutex>
 #include <queue>
@@ -275,7 +275,7 @@ int main(int argc, char** argv) {
 	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
 
 
-	std::string s = "/texture.png"; // fix basolute paht later
+	std::string s = "./texture.png"; // fix basolute paht later
 	unsigned char* data = stbi_load(s.c_str(), &texWidth, &texHeight, &nrChannels, 0);
 	if (data)
 	{
