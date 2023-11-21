@@ -1,5 +1,5 @@
 #pragma once
-#include "glm.hpp"
+#include <glm/glm.hpp>
 #include "Edge.h"
 #include <vector>
 // edges shall be defined as such

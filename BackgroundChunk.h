@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <vector>
-#include "glm.hpp"
+#include <glm/glm.hpp>
 #include "DAG.h"
 #include "PoissonSampler.h"
 #include <iostream>

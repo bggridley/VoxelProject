@@ -19,6 +19,24 @@
 Looks like *O(nlogn)* :)\
 If you would like to build and run the program, I would recommend using Visual Studio. No makefile included.
 
+## Running on Linux
+
+Same dependencies as below are required.
+
+In the base folder, run:
+
+```shell
+cmake .
+
+cmake --build .
+```
+
+This will build an executable. To run it:
+
+```shell
+./VoxelProject
+```
+
 ### Dependencies
 - Stb-master (included)
 - [GLEW 2.1.10](https://glew.sourceforge.net/)
