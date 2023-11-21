@@ -1,7 +1,10 @@
 # VoxelProject
 	Fun 3D voxel world using glfw, glew & glm!
 
-[![VoxectlProject Video](https://img.youtube.com/vi/5QcHtZsGygo/1.jpg)](https://www.youtube.com/watch?v=5QcHtZsGygo)
+[![VoxelProject Video](https://img.youtube.com/vi/5QcHtZsGygo/1.jpg)](https://www.youtube.com/watch?v=5QcHtZsGygo)
+[![VoxelProject Video 2](https://img.youtube.com/vi/i-36rOuVSHw/3.jpg)](https://www.youtube.com/watch?v=i-36rOuVSHw)
+
+^ See videos (YT compression made quality bad).
 
 ## Features
  - LOD System - *Comp Geo final project ft. [Stephen Derenski](https://github.com/sderenski)*
