@@ -5,7 +5,7 @@ Author Stephen Derenski and Ben Gridley
 */
 
 #pragma once
-#include "glm.hpp"
+#include <glm/glm.hpp>
 #include <stdio.h>
 
 class Primitives {
