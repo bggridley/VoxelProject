@@ -120,6 +120,7 @@ std::vector<glm::vec2> PoissonSampler::generatePoints(float sx, float sz, bool t
 						}
 					}
 					if (ok && sample.x < length && sample.y < width) {
+						float distSq = sample.x * sample.x + sample.y * sample.y;
 						grid[key] = sample;
 						active.push_back(sample);
 						ordered.push_back(sample);

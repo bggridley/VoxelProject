@@ -232,12 +232,6 @@ void Chunk::init(GLuint shader) {
 
 	std::cout << "Creating VBO one time." << std::endl;
 	program = shader;
-	// using just fill to avoid generating a new vertexID
-
-
-
-
-
 
 	glGenBuffers(1, &vID); // bind vertices
 	glBindBuffer(GL_ARRAY_BUFFER, vID);
@@ -476,10 +470,6 @@ Chunk::Chunk(int xo, int yo, int zo) {
 	totalCount++;
 	totalTime += duration;
 	//std::cout << duration.count() << std::endl;
-	//glUseProgram(program);
-
-
-	//free(indices);
 }
 
 int Chunk::getIndex(int x, int y, int z) {
@@ -489,21 +479,15 @@ int Chunk::getIndex(int x, int y, int z) {
 
 
 Chunk::~Chunk() {
-	//glDeleteBuffers(GL_ELEMENT_ARRAY_BUFFER, &iID);
-	//if(vID != 0)
-	//glDeleteBuffers(GL_ARRAY_BUFFER, &vID);
-
-	//if (&tID != 0)
-	//glDeleteBuffers(GL_ARRAY_BUFFER, &tID); 
-
-
 	glBindVertexArray(0);
 
+	if (&iID != 0) {
+		glDeleteBuffers(1, &iID);
+	}
 
+	if (&vao != 0) {
+		glDeleteVertexArrays(1, &vao);
+	}
 
-
-	glDeleteVertexArrays(1, &vao);
-
-	glDeleteBuffers(1, &iID);
-
+	indices.clear();
 }

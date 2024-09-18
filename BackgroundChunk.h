@@ -170,15 +170,28 @@ public:
 			Triangle* t = tris[i];
 			auto v = t->getVertices();
 
+			//std::cout << v[0].x << "  asdfg  " << v[0].y << std::endl;
+		
+
+			for (int j = 0; j < 3; j++) {
+				float xx = sx + v[j].x;
+				float zz = sz + v[j].y;
+				if (xx * xx + zz * zz < 1000 * 1000) {
+					goto quitLoop;
+				}
+			}
+
 			for (int j = 0; j < 3; j++) {
 				auto p = v[j];
 				verts[index++] = p.x;
 				verts[index++] = (World::getHeight(sx + p.x, sz + p.y));
 				verts[index++] = (p.y);
 			}
+
+			quitLoop:;
 		}
 
-		drawSize = 3 * 3 * tris.size();
+		drawSize = index;
 
 		glGenVertexArrays(1, &vao);
 		glGenBuffers(1, &vID); // bind vertices
@@ -186,7 +199,7 @@ public:
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vID);
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * 3 * tris.size(), verts, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * index, verts, GL_DYNAMIC_DRAW);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), (GLvoid*)0);
 		glEnableVertexAttribArray(0);
@@ -194,6 +207,8 @@ public:
 		glBindVertexArray(0); // Unbind VAO
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		free(verts);
 
 
 		// graphics section now 

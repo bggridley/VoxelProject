@@ -313,7 +313,7 @@ int main(int argc, char** argv) {
 
 	float near = 0.1f;
 	float far = 4096.f;
-	float fov = 60.0f;
+	float fov = 80.0f;
 	glm::mat4 projection = glm::perspective(glm::radians<float>(fov), (float)mode->width / (float)mode->height, near, far);
 
 	int curFPS = 0;
@@ -450,7 +450,7 @@ int main(int argc, char** argv) {
 							if (glm::distance(glm::vec3(c.x, 0, c.z) * (float)CHUNK_SIZE, glm::vec3(eyeX, 0, eyeZ)) > maxSizeSqrt * CHUNK_SIZE) {
 								chunkDequeue.push(c);
 								it = chunkList.erase(it);
-								wc++;
+								wc--;
 							}
 							else {
 								it++;
